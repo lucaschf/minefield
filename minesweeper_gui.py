@@ -39,6 +39,8 @@ PLAYER_TURN_FONT_SIZE = 12
 CELL_FONT_SIZE = 12
 
 CELL_MARGIN = 0
+DEFAULT_BOARD_ROWS = 16
+DEFAULT_BOARD_COLS = 16
 
 #----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -48,9 +50,7 @@ PLAYERS = ["Ailton", "Caren", "Giovanne", "Lucas", "Paulo", "Talita"]
 
 class Ui_MainWindow(QWidget):
 
-    def setupUi(self, MainWindow, board_size, players):
-        self.board_size = board_size
-        self.players = players
+    def setupUi(self, MainWindow, board_size={"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS}, players=[]):
 
         # Timers and flags counter font and stylesheet.
         timers_font = QtGui.QFont()
@@ -179,9 +179,6 @@ class Ui_MainWindow(QWidget):
         font.setPointSize(SCOREBOARD_FONT_SIZE)
 
         self.scoreboardListWidget.setFont(font)
-        for player in self.players:
-            item = QtWidgets.QListWidgetItem()
-            self.scoreboardListWidget.addItem(item)
 
         self.verticalLayout_3.addWidget(self.scoreboardListWidget)
         self.horizontalLayout_3.addWidget(self.scoreboardWidget)
@@ -207,7 +204,7 @@ class Ui_MainWindow(QWidget):
         self.verticalLayout_4.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         
-        self.new_board(self.board_size)
+        self.new_game(board_size, players)
 
         self.boardScrollArea.setWidget(self.boardScrollAreaWidgetContents)
         self.verticalLayout_2.addWidget(self.boardScrollArea)
@@ -300,10 +297,6 @@ class Ui_MainWindow(QWidget):
         __sortingEnabled = self.scoreboardListWidget.isSortingEnabled()
         self.scoreboardListWidget.setSortingEnabled(False)
 
-        for i, player in enumerate(self.players):
-            item = self.scoreboardListWidget.item(i)
-            item.setText(_translate("MainWindow", player))
-
         self.scoreboardListWidget.setSortingEnabled(__sortingEnabled)
         self.playerTurnLabel.setText(
             _translate("MainWindow", "Vez do Jogador: "))
@@ -319,7 +312,22 @@ class Ui_MainWindow(QWidget):
     #--------------------------------------------------------------------------------
     # Custom Methods
 
-    def new_board(self, board_size):
+    # Create a new board and scoreboard.
+    def new_game(self, board_size={"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS}, players=[]):
+        self.new_scoreboard(players)
+        self.new_board(board_size)
+
+    # Create a new scoreboard.
+    def new_scoreboard(self, players=[]):
+        self.players = players
+        self.scoreboardListWidget.clear()
+        for player in self.players:
+            item = QtWidgets.QListWidgetItem()
+            item.setText(player)
+            self.scoreboardListWidget.addItem(item)
+
+    # Create a new board.
+    def new_board(self, board_size={"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS}):
         print("New board. Size: {} x {}".format(board_size['rows'], board_size['columns']))
 
         # Delete the old board widgets.
@@ -420,16 +428,32 @@ class Ui_MainWindow(QWidget):
     # players: a list of dicts containing the players and their scores in the format: {"name": str, "score": int}.
     def update_scoreboard(self, players):
         _translate = QtCore.QCoreApplication.translate
-        for i, player in enumerate(players):
-            item = self.scoreboardListWidget.item(i)
-            item.setText(_translate("MainWindow", player['name'] + " - " + str(player['score'])))
+        for player in players:
+            index = self.find_player_index(player['name'])
+            if index != None:
+                item = self.scoreboardListWidget.item(index)
+                item.setText(_translate("MainWindow", player['name'] + " - " + str(player['score'])))
 
     # Return the index of the player or None if the player is not in the game.
     def find_player_index(self, player):
-        for i, name in enumerate(self.players):
-            if player == name:
-                return i
-        return None
+        try:
+            return self.players.index(player)
+        except ValueError:
+            return None
+
+    # Add a player to the game.
+    def add_player(self, player):
+        self.players.append(player)
+        item = QtWidgets.QListWidgetItem()
+        item.setText(player)
+        self.scoreboardListWidget.addItem(item)
+
+    # Remove a player from the game.
+    def remove_player(self, player):
+        index = self.find_player_index(player)
+        self.players.remove(player)
+        if index != None:
+            self.scoreboardListWidget.takeItem(index)
 
     # Strike out the name of the player who lost the game.
     def eliminate_player(self, player):
@@ -557,6 +581,7 @@ class Ui_MainWindow(QWidget):
         self.update_board(board)
         self.update_remaining_flags(random.randint(0, 100))
         self.start_game()
+        self.remove_player("Ailton")
 #-----------------------------------------------------------------------------------------------------------------------
 
 def suppress_qt_warnings():
@@ -571,6 +596,6 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
-    ui.setupUi(MainWindow, {"rows": 16, "columns": 16}, PLAYERS)
+    ui.setupUi(MainWindow, {"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS}, PLAYERS)
     MainWindow.show()
     sys.exit(app.exec_())
