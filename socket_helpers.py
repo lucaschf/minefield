@@ -1,6 +1,8 @@
 import json
 
-from response_code import EnumEncoder
+from EnumEncoder import EnumEncoder
+
+SERVER_PORT = 12000
 
 
 def send_data(data, socket):
