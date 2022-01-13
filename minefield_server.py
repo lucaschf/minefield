@@ -20,8 +20,8 @@ logger = logging.getLogger("")
 def answer(connection, data: Response, request):
     send_data(asdict(data), connection)
     logger.info("Request: '{}'\n\t\t  Response: {}".format(str(request), str(data)))
-    logger.info("Closing connection.")
-    connection.close()
+    #logger.info("Closing connection.")
+    #connection.close()
 
 
 def handle(connection, address, game_data):

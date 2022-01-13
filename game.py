@@ -3,7 +3,7 @@ from multiprocessing import Queue
 from Exceptions import PlayerOutOfTurn
 from player import Player
 
-PLAYER_QUEUE_SIZE = 5
+PLAYER_QUEUE_SIZE = 4
 
 
 class Game(object):
