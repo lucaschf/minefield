@@ -1,6 +1,8 @@
 import socket
 from dataclasses import asdict
+from time import sleep
 
+from game import GUESS_WATING_TIME
 from player import Player
 from request import Request
 from request_code import RequestCode
@@ -34,34 +36,53 @@ if __name__ == "__main__":
 
     client = GameClient(RPC_SERVER_ADDRESS, SERVER_PORT)
 
-    p = Player('Iasmina', 10, 1)
+    p = Player('Iasmina', 10, 1, 0)
     a = client.send_request(Request(RequestCode.get_in_line, p))
     print(a)
 
-    p = Player('Elias', 10, 1)
+    p = Player('Lucas', 10, 1, 0)
     a = client.send_request(Request(RequestCode.get_in_line, p))
     print(a)
 
-    p = Player('Livia', 10, 1)
+    p = Player('Ursula', 10, 1, 0)
     a = client.send_request(Request(RequestCode.get_in_line, p))
     print(a)
 
-    p = Player('Ursula', 10, 1)
+    p = Player('Nazare', 10, 1, 0)
     a = client.send_request(Request(RequestCode.get_in_line, p))
     print(a)
 
-    p = Player('Nazare', 10, 1)
+    p = Player('Erin', 10, 1, 0)
     a = client.send_request(Request(RequestCode.get_in_line, p))
     print(a)
 
-    p = Player('Dayana', 10, 1)
-    a = client.send_request(Request(RequestCode.get_in_line, p))
-    print(a)
+    #
+    # p = Player('Ursula', 10, 1, 0)
+    # a = client.send_request(Request(RequestCode.get_in_line, p))
+    # print(a)
 
-    p = Player('Iasmina', 11, 1)
+    p = Player('Iasmina', 11, 1, 2)
     a = client.send_request(Request(RequestCode.take_guess, p))
     print(a)
 
-    p = Player('Lowrena', 11, 1)
+    sleep(GUESS_WATING_TIME)
+
+    p = Player('Lucas', 11, 1, 2)
     a = client.send_request(Request(RequestCode.take_guess, p))
     print(a)
+
+    # p = Player('Nazare', 10, 1)
+    # a = client.send_request(Request(RequestCode.get_in_line, p))
+    # print(a)
+
+    # p = Player('Dayana', 10, 1)
+    # a = client.send_request(Request(RequestCode.get_in_line, p))
+    # print(a)
+    #
+    # p = Player('Iasmina', 11, 1)
+    # a = client.send_request(Request(RequestCode.take_guess, p))
+    # print(a)
+
+    # p = Player('Lowrena', 11, 1)
+    # a = client.send_request(Request(RequestCode.take_guess, p))
+    # print(a)
