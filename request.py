@@ -1,6 +1,11 @@
 from dataclasses import dataclass
+from enum import Enum
 
-from request_code import RequestCode
+
+class RequestCode(Enum):
+    get_in_line = 0
+    take_guess = 1
+    game_status = 2
 
 
 @dataclass

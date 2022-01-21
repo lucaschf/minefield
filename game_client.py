@@ -5,7 +5,7 @@ from time import sleep
 from game import GUESS_WATING_TIME
 from player import Player
 from request import Request
-from request_code import RequestCode
+from request import RequestCode
 from socket_helpers import send_data, receive_data, SERVER_PORT
 
 
@@ -44,32 +44,35 @@ if __name__ == "__main__":
     a = client.send_request(Request(RequestCode.get_in_line, p))
     print(a)
 
-    p = Player('Ursula', 10, 1, 0)
-    a = client.send_request(Request(RequestCode.get_in_line, p))
-    print(a)
-
-    p = Player('Nazare', 10, 1, 0)
-    a = client.send_request(Request(RequestCode.get_in_line, p))
-    print(a)
-
-    p = Player('Erin', 10, 1, 0)
-    a = client.send_request(Request(RequestCode.get_in_line, p))
-    print(a)
+    # p = Player('Ursula', 10, 1, 0)
+    # a = client.send_request(Request(RequestCode.get_in_line, p))
+    # print(a)
+    #
+    # p = Player('Nazare', 10, 1, 0)
+    # a = client.send_request(Request(RequestCode.get_in_line, p))
+    # print(a)
+    #
+    # p = Player('Erin', 10, 1, 0)
+    # a = client.send_request(Request(RequestCode.get_in_line, p))
+    # print(a)
 
     #
     # p = Player('Ursula', 10, 1, 0)
     # a = client.send_request(Request(RequestCode.get_in_line, p))
     # print(a)
 
-    p = Player('Iasmina', 11, 1, 2)
-    a = client.send_request(Request(RequestCode.take_guess, p))
-    print(a)
+    # p = Player('Iasmina', 11, 1, 2)
+    # a = client.send_request(Request(RequestCode.take_guess, p))
+    # print(a)
 
     sleep(GUESS_WATING_TIME)
 
     p = Player('Lucas', 11, 1, 2)
     a = client.send_request(Request(RequestCode.take_guess, p))
     print(a)
+
+    r = client.send_request(Request(RequestCode.game_status, None))
+    print(r)
 
     # p = Player('Nazare', 10, 1)
     # a = client.send_request(Request(RequestCode.get_in_line, p))

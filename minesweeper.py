@@ -1,16 +1,27 @@
 from random import randint
 
+from campoMinado import config
+
+
 class Minesweeper:
-    def __init__(self, line, column, bombs):
-        self.line = line
-        self.column = column
-        self.bombs = bombs
+
+    def __init__(self, players: int):
+        self.__players = players
+        self.__config = config(players)
+        self.line = self.__config["line"]
+        self.column = self.__config["column"]
+        self.bombs = self.__config["bombs"]
+
+    # def __init__(self, line, column, bombs):
+    #     self.line = line
+    #     self.column = column
+    #     self.bombs = bombs
 
     def createMatriz(self):
-        matriz = [] # lista vazia
+        matriz = []  # lista vazia
         for i in range(self.line):
             # cria a linha i
-            linha = [] # lista vazia
+            linha = []  # lista vazia
             for j in range(self.column):
                 linha += [0]
 
@@ -23,57 +34,55 @@ class Minesweeper:
     def printMatriz(self, matriz):
         for i in range(self.line):
             for j in range(self.column):
-                print(str(matriz[i][j])+'  ', end="")
+                print(str(matriz[i][j]) + '  ', end="")
             print('\n')
 
     def fillSides(self, matriz, x, y):
 
         # Ir para direita
-        if(y+1 < self.column and matriz[x][y+1] != 9):
-            matriz[x][y+1] += 1
+        if (y + 1 < self.column and matriz[x][y + 1] != 9):
+            matriz[x][y + 1] += 1
 
         # Ir para esquerda
-        if(y-1 >= 0 and matriz[x][y-1] != 9):
-            matriz[x][y-1] += 1
-        
+        if (y - 1 >= 0 and matriz[x][y - 1] != 9):
+            matriz[x][y - 1] += 1
 
         # Para cima
-        if(x-1 >= 0 and matriz[x-1][y] != 9):
-            matriz[x-1][y] += 1
+        if (x - 1 >= 0 and matriz[x - 1][y] != 9):
+            matriz[x - 1][y] += 1
 
         # Para baixo
-        if(x+1 < self.line and matriz[x+1][y] != 9):
-            matriz[x+1][y] += 1
+        if (x + 1 < self.line and matriz[x + 1][y] != 9):
+            matriz[x + 1][y] += 1
 
-        #Para cima e direita
-        if(x-1 >= 0 and y+1 < self.column and matriz[x-1][y+1] != 9):
-            matriz[x-1][y+1] += 1
-        
+        # Para cima e direita
+        if (x - 1 >= 0 and y + 1 < self.column and matriz[x - 1][y + 1] != 9):
+            matriz[x - 1][y + 1] += 1
+
         # Para baixo e direita
-        if(x+1 < self.line and y+1 < self.column and matriz[x+1][y+1] != 9):
-            matriz[x+1][y+1] += 1
+        if (x + 1 < self.line and y + 1 < self.column and matriz[x + 1][y + 1] != 9):
+            matriz[x + 1][y + 1] += 1
 
         # Para cima e esquerda
-        if(x-1 >=0 and y-1 >= 0 and matriz[x-1][y-1] != 9):
-            matriz[x-1][y-1] += 1
+        if (x - 1 >= 0 and y - 1 >= 0 and matriz[x - 1][y - 1] != 9):
+            matriz[x - 1][y - 1] += 1
 
         # Para baixo e esquerda
-        if(x+1 < self.line and y-1 >=0 and matriz[x+1][y-1] != 9):
-            matriz[x+1][y-1] += 1
-
+        if (x + 1 < self.line and y - 1 >= 0 and matriz[x + 1][y - 1] != 9):
+            matriz[x + 1][y - 1] += 1
 
         return matriz
 
     def plantBombs(self, matriz):
         while (self.bombs > 0):
             bomb = True
-            while(bomb):
+            while (bomb):
                 # Realiza o sorteio de uma linha e coluna
-                x = randint(0, self.line-1)
-                y = randint(0, self.column-1)
+                x = randint(0, self.line - 1)
+                y = randint(0, self.column - 1)
 
                 # Verifica se a posição na matriz possui bomba
-                if(matriz[x][y] != 9):
+                if (matriz[x][y] != 9):
                     bomb = False
                     matriz[x][y] = 9
                     matriz = self.fillSides(matriz, x, y)

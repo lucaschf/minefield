@@ -4,13 +4,14 @@ import socket
 from dataclasses import asdict
 
 from Exceptions import PlayerOutOfTurn
-from game import Game
+from game import Game, Status
+from game_info import GameInfo
 from json_helpers import dataclass_from_dict
 from player import Player
 from request import Request
-from request_code import RequestCode
+from request import RequestCode
 from response import Response
-from response_code import ResponseCode
+from response import ResponseCode
 from socket_helpers import send_data, receive_data, SERVER_PORT
 
 logging.basicConfig(level=logging.INFO)
@@ -35,7 +36,6 @@ class GameServer(object):
         while True:
             self.start_game_if_requirements_met()
             self.listen_requests()
-            self.start_game_if_requirements_met()
 
     def listen_requests(self):
         conn, address = self.__socket.accept()
@@ -47,7 +47,8 @@ class GameServer(object):
         self.handle_requests(conn, address)
 
     def start_game_if_requirements_met(self):
-        if not self.__game.running and (self.__game.queueing_timeout or self.__game.is_player_queue_full()):
+        if self.__game.status == Status.waiting_players and (
+                self.__game.queueing_timeout or self.__game.is_player_queue_full):
             self.__game.start()
 
     @staticmethod
@@ -73,11 +74,13 @@ class GameServer(object):
                     break
                 if request.code == RequestCode.get_in_line.value:
                     self.start_game_if_requirements_met()
-                    response = self.handle_queue_request(request, self.__game)
-                    self.answer(connection, response, request)
+                    self.answer(connection, self.handle_queue_request(request), request)
                     break
                 elif request.code == RequestCode.take_guess.value:
-                    self.answer(connection, self.handle_guess(request, self.__game), request)
+                    self.answer(connection, self.handle_guess(request), request)
+                    break
+                elif request.code == RequestCode.game_status.value:
+                    self.answer(connection, self.handle_status_request(), request)
                     break
                 else:
                     self.answer(connection, Response(ResponseCode.UNSUPPORTED, "Unsupported operation"), request)
@@ -85,9 +88,8 @@ class GameServer(object):
         except RuntimeError:
             GameServer.answer(connection, Response(ResponseCode.ERROR, "Can't handle request"), "")
 
-    @staticmethod
-    def handle_queue_request(request: Request, game_data: Game) -> Response:
-        if game_data.running:
+    def handle_queue_request(self, request: Request) -> Response:
+        if self.__game.status == Status.running:
             return Response(ResponseCode.DENIED, "The game has already started")
 
         player = dataclass_from_dict(Player, request.body)
@@ -95,21 +97,19 @@ class GameServer(object):
         if not isinstance(player, Player):
             return Response(ResponseCode.ERROR, "Invalid player data")
 
-        if game_data.is_player_queue_full():
+        if self.__game.is_player_queue_full:
             return Response(ResponseCode.DENIED, "Queue is full")
 
-        check = [p for p in game_data.players_as_list if p.name == player.name]
+        check = [p for p in self.__game.players_as_list if p.name == player.name]
         if check:
             return Response(ResponseCode.BAD_REQUEST,
                             f"That's is already a player with the name '{player.name}' on the queue.")
 
-        print(player.name)
-        game_data.add_player_to_queue(player)
+        self.__game.add_player_to_queue(player)
 
-        return Response(ResponseCode.OK, game_data.players_as_list)
+        return Response(ResponseCode.OK, self.__game.players_as_list)
 
-    @staticmethod
-    def handle_guess(request: Request, game_data: Game) -> Response:
+    def handle_guess(self, request: Request) -> Response:
         player = dataclass_from_dict(Player, request.body)
 
         # TODO use tuple for player - guess
@@ -119,9 +119,18 @@ class GameServer(object):
 
         try:
             # TODO format to Response
-            return game_data.take_guess(player, None)
+            return self.__game.take_guess(player, None)
         except PlayerOutOfTurn as e:
             return Response(ResponseCode.DENIED, e.errors)
+
+    def handle_status_request(self) -> Response:
+        info: GameInfo = GameInfo(
+            self.__game.players_as_list,
+            self.__game.status,
+            self.__game.get_current_player(generate_if_none=False),
+            self.__game.minesweeper
+        )
+        return Response(ResponseCode.OK, info)
 
 
 def kill_proccess():
