@@ -1,10 +1,13 @@
 from random import randint
+from data import config
 
 class Minesweeper:
-    def __init__(self, line, column, bombs):
-        self.line = line
-        self.column = column
-        self.bombs = bombs
+    def __init__(self, players):
+        self.__players = players
+        self.__config = config(self.__players)
+        self.line = self.__config["line"]
+        self.column = self.__config["column"]
+        self.bombs = self.__config["bombs"]
 
     def createMatriz(self):
         matriz = [] # lista vazia
