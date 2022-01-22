@@ -1,5 +1,4 @@
 from minesweeper import Minesweeper
-from data import config
 
 def matriz(players):
     minesweeper = Minesweeper(players)
@@ -7,6 +6,9 @@ def matriz(players):
     matriz = minesweeper.createMatriz()
     matriz = minesweeper.plantBombs(matriz)
     minesweeper.printMatriz(matriz)
+
+    matriz = minesweeper.fieldLogic(0,0,matriz)
+
 
     return matriz
 

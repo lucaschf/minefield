@@ -1,5 +1,6 @@
 from random import randint
 from data import config
+from field import Field
 
 class Minesweeper:
     def __init__(self, players):
@@ -82,5 +83,23 @@ class Minesweeper:
                     matriz = self.fillSides(matriz, x, y)
 
             self.bombs -= 1
+
+        return matriz
+
+    def fieldLogic(self,x,y,matriz):
+        print('\n')
+
+        if(matriz[x][y] == 0):
+            print('abrir campos adjacentes')
+        elif matriz[x][y] == 9:
+            fieldData = Field(True, [x, y], False)
+            print('bomba',fieldData)
+            return fieldData
+        else:
+            fieldData = Field(False, [x, y], False)
+            print('campo comum',fieldData)
+            return fieldData
+
+        self.printMatriz(matriz)
 
         return matriz
