@@ -1,7 +1,7 @@
-import queue
+# import queue
 import time
 from enum import Enum
-# from multiprocessing import Queue
+from multiprocessing import Queue
 from typing import Optional
 
 from Exceptions import PlayerOutOfTurn
@@ -22,8 +22,8 @@ class Status(Enum):
 class Game(object):
 
     def __init__(self):
-        # self.__players = Queue(maxsize=PLAYER_QUEUE_SIZE)
-        self.__players = queue.Queue(maxsize=PLAYER_QUEUE_SIZE)
+        self.__players = Queue(maxsize=PLAYER_QUEUE_SIZE)
+        # self.__players = queue.Queue(maxsize=PLAYER_QUEUE_SIZE)
         self.__player_of_the_round = None
         self.__last_player_who_guessed: Optional[Player] = None
         self.__last_player_joined_in: time = None
@@ -59,7 +59,7 @@ class Game(object):
     @property
     def players_as_list(self) -> []:
         player_list = []
-        temp = queue.Queue(self.__players.qsize())
+        temp = Queue(self.__players.qsize())
 
         while not self.__players.empty():
             p = self.__players.get_nowait()
