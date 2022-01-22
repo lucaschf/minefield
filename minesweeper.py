@@ -91,6 +91,9 @@ class Minesweeper:
 
         if(matriz[x][y] == 0):
             print('abrir campos adjacentes')
+            matriz[x][y] = 'x'
+            self.validateLine(matriz,x,y)
+
         elif matriz[x][y] == 9:
             fieldData = Field(True, [x, y], False)
             print('bomba',fieldData)
@@ -103,3 +106,170 @@ class Minesweeper:
         self.printMatriz(matriz)
 
         return matriz
+
+    def validateLine(self, matriz,x,y):
+        # Direita
+        if(y+1 < self.column  and matriz[x][y+1] == 0):
+            matriz[x][y+1] = 'x'
+            self.right(matriz,x,y+1)
+        elif(y+1 < self.column  and matriz[x][y+1] != 0):
+            matriz[x][y+1] = 'x'
+
+        # Esquerda
+        if(y-1 >= 0 and matriz[x][y-1] == 0):
+            matriz[x][y-1] = 'x'
+            self.left(matriz,x,y-1)
+        elif(y-1 >= 0 and matriz[x][y-1] != 0):
+            matriz[x][y-1] = 'x'
+
+        # Baixo
+        if(x+1 < self.line and matriz[x+1][y] == 0):
+            matriz[x+1][y] = 'x'
+            self.down(matriz,x+1,y)
+        elif(x+1 < self.line and matriz[x+1][y] != 0):
+            matriz[x+1][y] = 'x'
+
+        # Cima
+        if(x-1 >= 0 and matriz[x-1][y] == 0):
+            matriz[x-1][y] = 'x'
+            self.up(matriz,x-1,y)
+        elif(x-1 >= 0 and matriz[x-1][y] != 0):
+            matriz[x-1][y] = 'x'
+
+        # Cima/Direita
+        if(x-1 >= 0 and y+1 < self.column and matriz[x-1][y+1] == 0):
+            matriz[x-1][y+1] = 'x'
+            self.upRight(matriz,x-1,y)
+        elif(x-1 >= 0 and y+1 < self.column and matriz[x-1][y+1] != 0):
+            matriz[x-1][y+1] = 'x'
+
+        # Baixo/Direita
+        if(x+1 < self.line and y+1 < self.column and matriz[x+1][y+1] == 0):
+            matriz[x+1][y+1] = 'x'
+            self.downRight(matriz,x-1,y)
+        elif(x+1 < self.line and y+1 < self.column and matriz[x+1][y+1] != 0):
+            matriz[x+1][y+1] = 'x'
+
+        # Cima/esquerda
+        if(x-1 >=0 and y-1 >= 0 and  matriz[x-1][y-1] == 0):
+            matriz[x-1][y-1] = 'x'
+            self.upLeft(matriz,x-1,y)
+        elif(x-1 >=0 and y-1 >= 0 and  matriz[x-1][y-1] != 0):
+            matriz[x-1][y-1] = 'x'
+
+        # Baixo/esquerda
+        if(x+1 < self.line and y-1 >=0 and matriz[x+1][y-1] == 0):
+            matriz[x+1][y-1] = 'x'
+            self.downLeft(matriz,x-1,y)
+        elif(x+1 < self.line and y-1 >=0 and matriz[x+1][y-1] != 0):
+            matriz[x+1][y-1] = 'x'
+
+
+    # AÇÕES
+    def right(self, matriz,x,y):
+        if(y+1 < self.column  and matriz[x][y+1] == 0):
+            matriz[x][y+1] = 'x'
+            self.validateLine(matriz,x,y+1)
+        elif(y+1 < self.column  and matriz[x][y+1] != 0):
+            matriz[x][y+1] = 'x'
+
+    def left(self, matriz,x,y):
+        if(y-1 >= 0 and matriz[x][y-1] == 0):
+            matriz[x][y-1] = 'x'
+            self.validateLine(matriz,x,y-1)
+        elif(y-1 >= 0 and matriz[x][y-1] != 0):
+            matriz[x][y-1] = 'x'
+
+    def down(self, matriz,x,y):
+        if(x+1 < self.line and matriz[x+1][y] == 0):
+            matriz[x+1][y] = 'x'
+            self.validateLine(matriz,x+1,y)
+        elif(x+1 < self.line and matriz[x+1][y] != 0):
+            matriz[x+1][y] = 'x'
+
+    def up(self, matriz,x,y):
+        if(x-1 >= 0 and matriz[x-1][y] == 0):
+            matriz[x-1][y] = 'x'
+            self.validateLine(matriz,x-1,y)
+        elif(x-1 >= 0 and matriz[x-1][y] != 0):
+            matriz[x-1][y] = 'x'
+
+    def upRight(self, matriz,x,y):
+        if(x-1 >= 0 and y+1 < self.column and matriz[x-1][y+1] == 0):
+            matriz[x-1][y+1] = 'x'
+            self.validateLine(matriz,x-1,y)
+        elif(x-1 >= 0 and y+1 < self.column and matriz[x-1][y+1] != 0):
+            matriz[x-1][y+1] = 'x'
+
+    def downRight(self, matriz,x,y):
+        if(x+1 < self.line and y+1 < self.column and matriz[x+1][y+1] == 0):
+            matriz[x+1][y+1] = 'x'
+            self.validateLine(matriz,x-1,y)
+        elif(x+1 < self.line and y+1 < self.column and matriz[x+1][y+1] != 0):
+            matriz[x+1][y+1] = 'x'
+
+    def upLeft(self, matriz,x,y):
+        if(x-1 >=0 and y-1 >= 0 and  matriz[x-1][y-1] == 0):
+            matriz[x-1][y-1] = 'x'
+            self.validateLine(matriz,x-1,y)
+        elif(x-1 >=0 and y-1 >= 0 and  matriz[x-1][y-1] != 0):
+            matriz[x-1][y-1] = 'x'
+
+    def downLeft(self, matriz,x,y):
+        if(x+1 < self.line and y-1 >=0 and matriz[x+1][y-1] == 0):
+            matriz[x+1][y-1] = 'x'
+            self.validateLine(matriz,x-1,y)
+        elif(x+1 < self.line and y-1 >=0 and matriz[x+1][y-1] != 0):
+            matriz[x+1][y-1] = 'x'
+
+
+    def fieldZero(self,x,y,matriz):
+        # Ir para direita
+        if(y+1 < self.column and matriz[x][y+1] != 9):
+            if(matriz[x][y+1] == 0):
+                self.fieldZero(x,y,matriz)
+            matriz[x][y+1] = 'x'
+
+        # Ir para esquerda
+        if(y-1 >= 0 and matriz[x][y-1] != 9):
+            if(matriz[x][y-1] == 0):
+                self.fieldZero(x,y,matriz)
+            matriz[x][y-1] = 'x'
+        
+
+        # Para cima
+        if(x-1 >= 0 and matriz[x-1][y] != 9):
+            if(matriz[x-1][y]  == 0):
+                self.fieldZero(x,y,matriz)
+            matriz[x-1][y] = 'x'
+
+        # Para baixo
+        if(x+1 < self.line and matriz[x+1][y] != 9):
+            if(matriz[x+1][y] == 0):
+                self.fieldZero(x,y,matriz)
+            matriz[x+1][y] = 'x'
+
+        #Para cima e direita
+        if(x-1 >= 0 and y+1 < self.column and matriz[x-1][y+1] != 9):
+            if(matriz[x-1][y+1] == 0):
+                self.fieldZero(x,y,matriz)
+            matriz[x-1][y+1] = 'x'
+        
+        # Para baixo e direita
+        if(x+1 < self.line and y+1 < self.column and matriz[x+1][y+1] != 9):
+            if(matriz[x+1][y+1] == 0):
+                self.fieldZero(x,y,matriz)
+            matriz[x+1][y+1] = 'x'
+
+        # Para cima e esquerda
+        if(x-1 >=0 and y-1 >= 0 and matriz[x-1][y-1] != 9):
+            if(matriz[x-1][y-1] == 0):
+                self.fieldZero(x,y,matriz)
+            matriz[x-1][y-1] = 'x'
+
+        # Para baixo e esquerda
+        if(x+1 < self.line and y-1 >=0 and matriz[x+1][y-1] != 9):
+            if(matriz[x+1][y-1] == 0):
+                self.fieldZero(x,y,matriz)
+            matriz[x+1][y-1] = 'x'
+        
