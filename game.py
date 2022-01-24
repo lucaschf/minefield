@@ -1,4 +1,5 @@
 # import queue
+import threading
 import time
 from enum import Enum
 from multiprocessing import Queue
@@ -9,7 +10,7 @@ from minesweeper import Minesweeper
 from player import Player
 
 PLAYER_QUEUE_SIZE = 4
-QUEUE_WATING_TIME = 5  # seconds
+QUEUE_WATING_TIME = 10  # seconds
 GUESS_WATING_TIME = 3  # seconds
 
 
@@ -76,6 +77,11 @@ class Game(object):
         return self.__minesweeper
 
     def add_player_to_queue(self, player: Player):
+        if self.__players.empty():
+            thSt = threading.Thread(target=self.start_game_if_requirements_met)
+            thSt.start()
+        #     # thSt.join()
+
         self.__last_player_joined_in = time.time()
         self.__players.put_nowait(player.with_not_statistics(player.name))
 
@@ -96,8 +102,9 @@ class Game(object):
         return self.__player_of_the_round
 
     def __get_next_player_from_queue(self):
-        self.__player_of_the_round = self.__players.get_nowait()
-        self.add_player_to_queue(self.__player_of_the_round)
+        if not self.__players.empty():
+            self.__player_of_the_round = self.__players.get_nowait()
+            self.add_player_to_queue(self.__player_of_the_round)
 
     def __is_player_turn(self, player: Player):
         p = self.get_current_player()
@@ -125,14 +132,21 @@ class Game(object):
             return False
 
         diff = time.time() - last_event_time
+        print("DIF", diff)
         return diff >= maximum_time
 
     def start(self):
         self.__status = Status.running
         self.__update_guess_time()
         self.reset_queue_timeout()
+        self.__get_next_player_from_queue()
         self.__minesweeper = Minesweeper(self.__players.qsize())
         # TODO ADD rest of logic here
+
+    def start_game_if_requirements_met(self):
+        while self.status == Status.waiting_players:
+            if self.queueing_timeout or self.is_player_queue_full:
+                self.start()
 
     def reset_queue_timeout(self):
         self.__last_player_joined_in = None

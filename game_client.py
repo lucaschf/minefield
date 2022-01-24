@@ -1,6 +1,8 @@
 import socket
+import time
 from dataclasses import asdict
 
+from game import QUEUE_WATING_TIME
 from player import Player
 from request import Request
 from request import RequestCode
@@ -86,14 +88,21 @@ if __name__ == "__main__":
 
     print(client.send_empty())
 
-    # print(client.request_queue_entry("Iasmina"))
-    # print(client.request_queue_entry("Lucas"))
+    print(client.request_queue_entry("Iasmina"))
+    print(client.request_queue_entry("Lucas"))
+    time.sleep(QUEUE_WATING_TIME + 1)
 
-    # print(client.request_game_status())
+    print("SHOULD NOT ENTER")
+
+    print(client.request_queue_entry("juca"))
+    print(client.request_queue_entry("asdasd"))
+
+    print("STATUS")
+    print(client.request_game_status())
+
     # print(client.request_queue_entry(None))
     # print(client.request_queue_entry(""))
     # print(client.request_queue_entry("Iasmina"))
     # print(client.request_game_status())
-    # time.sleep(GUESS_WATING_TIME + 1)
     # print(client.request_game_status())
     # print(client.request_queue_entry(""))

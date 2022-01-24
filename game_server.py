@@ -1,6 +1,6 @@
 import logging
-import multiprocessing
 import socket
+import threading
 from dataclasses import asdict
 from json.decoder import JSONDecodeError
 
@@ -35,17 +35,24 @@ class GameServer(object):
         self.__socket.listen(1)
         self.__game = Game()
 
-        while True:
-            self.start_game_if_requirements_met(self.__game)
-            self.listen_requests()
+        lock = threading.Lock()
 
-    def listen_requests(self):
+        while True:
+            self.listen_requests(lock)
+
+    def listen_requests(self, lock):
         conn, address = self.__socket.accept()
         self.__logger.info("Connection accepted...")
-        _process = multiprocessing.Process(target=self.handle_requests, args=(conn, address, self.__game))
-        _process.daemon = True
-        _process.start()
-        self.__logger.debug("Started process %r", _process)
+        # _process = multiprocessing.Process(target=self.handle_requests, args=(conn, address, self.__game))
+        # _process.daemon = True
+        # _process.start()
+        # _process.join()
+        # self.__logger.debug("Started process %r", _process)
+
+        th = threading.Thread(target=self.handle_requests, args=(conn, address, self.__game, lock))
+        th.start()
+        th.join()
+
         # self.handle_requests(conn, address, self.__game)
 
     @staticmethod
@@ -70,23 +77,24 @@ class GameServer(object):
         connection.close()
 
     @staticmethod
-    def handle_requests(connection, address, game_data: Game):
+    def handle_requests(connection, address, game_data: Game, lock):
         try:
             logger.info(f"Connection from {address} has been established.")
 
             while True:
                 request_data = receive_data(connection)
 
+                lock.acquire()
+
                 try:
                     request = dataclass_from_dict(Request, request_data)
-                except JSONDecodeError as e:
+                except JSONDecodeError:
                     GameServer.answer(connection, Response(ResponseCode.BAD_REQUEST, "Bad request"), request_data)
                     break
                 if not isinstance(request, Request):
                     GameServer.answer(connection, Response(ResponseCode.BAD_REQUEST, "Bad request"), request)
                     break
                 if request.code == RequestCode.get_in_line.value:
-                    GameServer.start_game_if_requirements_met(game_data)
                     GameServer.answer(connection, GameServer.handle_queue_request(request, game_data), request)
                     break
                 elif request.code == RequestCode.take_guess.value:
@@ -100,6 +108,8 @@ class GameServer(object):
                     break
         except RuntimeError:
             GameServer.answer(connection, Response(ResponseCode.ERROR, "Can't handle request"), "")
+        finally:
+            lock.release()
 
     @staticmethod
     def handle_queue_request(request: Request, game_data: Game) -> Response:
@@ -152,13 +162,6 @@ class GameServer(object):
         return Response(ResponseCode.OK, info)
 
 
-def kill_proccess():
-    for process in multiprocessing.active_children():
-        logging.info("Shutting down process %r", process)
-        process.terminate()
-        process.join()
-
-
 if __name__ == "__main__":
     game = Game()
     server = GameServer('', SERVER_PORT)
@@ -169,6 +172,5 @@ if __name__ == "__main__":
         logging.exception("Unexpected exception")
     finally:
         logging.info("Shutting down")
-        kill_proccess()
 
     logging.info("All done")
