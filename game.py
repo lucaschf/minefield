@@ -18,6 +18,7 @@ class Status(Enum):
     waiting_players = 0
     running = 1
     ended = 2
+    ended_due_inactivity = 3
 
 
 class Game(object):
@@ -98,6 +99,9 @@ class Game(object):
         else:
             self.__aux_players.clear()
             self.__player_of_the_round = None
+
+        if self.is_player_queue_empty and self.status == Status.running:
+            self.__status = Status.ended_due_inactivity
 
         self.__update_guess_time()
         self.__start_guess_timeout_checker()
