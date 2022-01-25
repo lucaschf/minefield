@@ -4,7 +4,7 @@ from dataclasses import asdict
 
 from dacite import from_dict, Config
 
-from game import QUEUE_WATING_TIME
+from game import QUEUE_WAITING_TIME, GUESS_WAITING_TIME
 from player import Player
 from request import Request
 from request import RequestCode
@@ -88,15 +88,13 @@ if __name__ == "__main__":
 
     (client.request_queue_entry("Iasmina"))
     (client.request_queue_entry("Lucas"))
-    # (client.request_queue_entry("Guest"))
+    time.sleep(QUEUE_WAITING_TIME)
+    time.sleep(GUESS_WAITING_TIME)
 
-    print("TODOS")
+    print(client.request_game_status())
+    time.sleep(GUESS_WAITING_TIME)
     print(client.request_game_status())
 
-    # print("2")
-    time.sleep(QUEUE_WATING_TIME + 1)
-    print(client.request_take_guess("Iasmina"))
-    print(client.request_game_status())
     #
     # print("1")
     # time.sleep(QUEUE_WATING_TIME + 1)

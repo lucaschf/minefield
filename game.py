@@ -10,8 +10,8 @@ from minesweeper import Minesweeper
 from player import Player
 
 PLAYER_QUEUE_SIZE = 4
-QUEUE_WATING_TIME = 10  # seconds
-GUESS_WATING_TIME = 3  # seconds
+QUEUE_WAITING_TIME = 3  # seconds
+GUESS_WAITING_TIME = 2  # seconds
 
 
 class Status(Enum):
@@ -24,11 +24,10 @@ class Game(object):
 
     def __init__(self):
         self.__players = Queue(maxsize=PLAYER_QUEUE_SIZE)
-        # self.__players = queue.Queue(maxsize=PLAYER_QUEUE_SIZE)
-        self.__player_of_the_round = None
+        self.__player_of_the_round: Optional[Player] = None
         self.__last_player_who_guessed: Optional[Player] = None
         self.__last_player_joined_in: time = None
-        self.__last_guess_received_at: time = None
+        self.__last_player_interaction: time = None
         self.__minesweeper: Optional[Minesweeper] = None
         self.__status: Status = Status.waiting_players
         self.__aux_players: {Player} = set()
@@ -51,18 +50,16 @@ class Game(object):
 
     @property
     def queueing_timeout(self):
-        return self.__timeout(QUEUE_WATING_TIME, self.__last_player_joined_in)
+        return self.__timeout(QUEUE_WAITING_TIME, self.__last_player_joined_in)
 
     @property
     def guessing_timeout(self):
-        timeout = self.__timeout(GUESS_WATING_TIME, self.__last_guess_received_at)
+        timeout = self.__timeout(GUESS_WAITING_TIME, self.__last_player_interaction)
         return timeout
 
     @property
     def players_as_tuple(self) -> tuple:
-        s = tuple(self.__aux_players)
-        print(type(s), " ", s)
-        return s
+        return tuple(self.__aux_players)
 
     @property
     def minesweeper(self):
@@ -75,9 +72,7 @@ class Game(object):
 
         self.__last_player_joined_in = time.time()
         self.__players.put_nowait(player.with_not_statistics(player.name))
-        print("TUPLA ANTES", self.__aux_players)
         self.__aux_players.add(player)
-        print("TUPLA DEPOIS", self.__aux_players)
 
     def get_current_player(self, generate_if_none: bool = True) -> Player:
         if not generate_if_none:
@@ -85,34 +80,27 @@ class Game(object):
 
         if self.guessing_timeout or not self.__player_of_the_round or self.__last_player_who_guessed == \
                 self.__player_of_the_round:
-            self.__get_player_of_the_turn()
-
-        # if self.guessing_timeout:
-        #     self.__get_player_of_the_turn()
-        # else:
-        #     if not self.__player_of_the_round:
-        #         self.__get_player_of_the_turn()
-        #     elif self.__last_player_who_guessed == self.__player_of_the_round:
-        #         self.__get_player_of_the_turn()
+            self.__change_player()
 
         return self.__player_of_the_round
 
-    def __get_player_of_the_turn(self, timeout: bool = False):
+    def __change_player(self, timeout: bool = False):
+        current = self.__player_of_the_round
+
         if not self.__players.empty():
             self.__player_of_the_round = self.__players.get_nowait()
 
-            if not timeout:
-                self.add_player_to_queue(self.__player_of_the_round)
-            else:
-                ls_aux = list(self.__aux_players)
-                ls_aux.remove(self.__player_of_the_round)
-                self.__aux_players = tuple(ls_aux)
-
-            self.__start_guess_timeout_checker()
+            if current is not None:
+                if timeout:
+                    self.__aux_players.remove(current)
+                else:
+                    self.add_player_to_queue(current)
         else:
+            self.__aux_players.clear()
             self.__player_of_the_round = None
 
         self.__update_guess_time()
+        self.__start_guess_timeout_checker()
 
     def __is_player_turn(self, player: Player):
         p = self.get_current_player()
@@ -125,15 +113,15 @@ class Game(object):
         else:
             # TODO  guess logic here
             self.__last_player_who_guessed = self.__player_of_the_round
-            self.__get_player_of_the_turn()
+            self.__change_player()
 
         return self.__last_player_who_guessed
 
     def __update_guess_time(self):
         if self.__player_of_the_round is None:
-            self.__last_guess_received_at = None
+            self.__last_player_interaction = None
         else:
-            self.__last_guess_received_at = time.time()
+            self.__last_player_interaction = time.time()
 
     @staticmethod
     def __timeout(maximum_time: float, last_event_time: time) -> bool:
@@ -147,7 +135,7 @@ class Game(object):
         self.__status = Status.running
         self.reset_queue_timeout()
         self.__minesweeper = Minesweeper(self.__players.qsize())
-        self.__get_player_of_the_turn()
+        self.__change_player()
 
     def start_game_if_requirements_met(self):
         while self.status == Status.waiting_players:
@@ -163,9 +151,6 @@ class Game(object):
         th_timeout.start()
 
     def __pass_the_turn_if_inactive_player(self, expected_player: Player):
-        while self.__player_of_the_round is not None and self.__player_of_the_round == expected_player:
+        while self.__player_of_the_round is not None and self.__player_of_the_round.name == expected_player.name:
             if self.guessing_timeout:
-                print("TIMED OUT FOR", self.__player_of_the_round.name)
-                self.__get_player_of_the_turn(True)
-                print("NEW PLATER")
-                print(self.__player_of_the_round)
+                self.__change_player(True)
