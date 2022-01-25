@@ -109,7 +109,7 @@ class Minesweeper:
 
             print('abrir campos adjacentes', coordinates)
             won = self.gameFinished()
-            return Field(True, coordinates, won)
+            return Field(False, coordinates, won)
 
         elif matriz[x][y] == 9:
             print('bomba')
