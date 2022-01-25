@@ -7,9 +7,7 @@ def matriz(players):
     matriz = minesweeper.plantBombs(matriz)
     minesweeper.printMatriz(matriz)
 
-    matriz = minesweeper.fieldLogic(0,2,matriz)
+    fieldData = minesweeper.fieldLogic(0,2,matriz)
+    print(fieldData)
 
-
-    return matriz
-
-matriz(1)
+matriz(4)
