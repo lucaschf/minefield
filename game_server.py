@@ -4,15 +4,15 @@ import threading
 from dataclasses import asdict
 from json.decoder import JSONDecodeError
 
+from dacite import from_dict, Config
+
 from Exceptions import PlayerOutOfTurn
 from game import Game, Status
-from game_info import GameInfo
-from json_helpers import dataclass_from_dict
+from game_info import GameInfo, PlayerQueueInfo
 from player import Player
 from request import Request
 from request import RequestCode
-from response import Response
-from response import ResponseCode
+from response import Response, bad_request_response, denied_response, ok_response, error_response, unsupported_response
 from socket_helpers import send_data, receive_data, SERVER_PORT
 
 logging.basicConfig(level=logging.INFO)
@@ -43,17 +43,10 @@ class GameServer(object):
     def listen_requests(self, lock):
         conn, address = self.__socket.accept()
         self.__logger.info("Connection accepted...")
-        # _process = multiprocessing.Process(target=self.handle_requests, args=(conn, address, self.__game))
-        # _process.daemon = True
-        # _process.start()
-        # _process.join()
-        # self.__logger.debug("Started process %r", _process)
 
         th = threading.Thread(target=self.handle_requests, args=(conn, address, self.__game, lock))
         th.start()
         th.join()
-
-        # self.handle_requests(conn, address, self.__game)
 
     @staticmethod
     def start_game_if_requirements_met(game_data: Game):
@@ -87,12 +80,12 @@ class GameServer(object):
                 lock.acquire()
 
                 try:
-                    request = dataclass_from_dict(Request, request_data)
+                    request = from_dict(Request, request_data, config=Config(check_types=False))
                 except JSONDecodeError:
-                    GameServer.answer(connection, Response(ResponseCode.BAD_REQUEST, "Bad request"), request_data)
+                    GameServer.answer(connection, bad_request_response(), request_data)
                     break
                 if not isinstance(request, Request):
-                    GameServer.answer(connection, Response(ResponseCode.BAD_REQUEST, "Bad request"), request)
+                    GameServer.answer(connection, bad_request_response(), request)
                     break
                 if request.code == RequestCode.get_in_line.value:
                     GameServer.answer(connection, GameServer.handle_queue_request(request, game_data), request)
@@ -104,62 +97,68 @@ class GameServer(object):
                     GameServer.answer(connection, GameServer.handle_status_request(game_data), request)
                     break
                 else:
-                    GameServer.answer(connection, Response(ResponseCode.UNSUPPORTED, "Unsupported operation"), request)
+                    GameServer.answer(connection, unsupported_response(), request)
                     break
         except RuntimeError:
-            GameServer.answer(connection, Response(ResponseCode.ERROR, "Can't handle request"), "")
+            GameServer.answer(connection, error_response(), "")
         finally:
             lock.release()
 
     @staticmethod
     def handle_queue_request(request: Request, game_data: Game) -> Response:
-        if game_data.status == Status.running:
-            return Response(ResponseCode.DENIED, "The game has already started")
+        try:
+            if game_data.status == Status.running:
+                return denied_response("The game has already started")
 
-        player = dataclass_from_dict(Player, request.body)
+            try:
+                player = request.content(Player)
+            except AttributeError as e:
+                return bad_request_response("Invalid player data")
 
-        if not isinstance(player, Player):
-            return Response(ResponseCode.BAD_REQUEST, "Invalid player data")
+            if player is None or player.name is None or player.name == "":
+                return bad_request_response("Invalid player data")
 
-        if player.name is None or player.name == "":
-            return Response(ResponseCode.BAD_REQUEST, "Invalid player data")
+            if game_data.is_player_queue_full:
+                return denied_response("Queue is full")
 
-        if game_data.is_player_queue_full:
-            return Response(ResponseCode.DENIED, "Queue is full")
+            found = [p for p in game_data.players_as_tuple if p.name == player.name]
+            if found:
+                bad_request_response(f"That's is already a player with the name '{player.name}' on the queue.")
 
-        check = [p for p in game_data.players_as_list if p.name == player.name]
-        if check:
-            return Response(ResponseCode.BAD_REQUEST,
-                            f"That's is already a player with the name '{player.name}' on the queue.")
-
-        game_data.add_player_to_queue(player)
-
-        return Response(ResponseCode.OK, game_data.players_as_list)
+            game_data.add_player_to_queue(player)
+            return ok_response(PlayerQueueInfo(game_data.players_as_tuple))
+        except RuntimeError:
+            return error_response()
 
     @staticmethod
     def handle_guess(request: Request, game_data: Game) -> Response:
-        player = dataclass_from_dict(Player, request.body)
 
-        # TODO use tuple for player - guess
+        if game_data.status != Status.running:
+            return bad_request_response("No game started")
 
-        if not isinstance(player, Player):
-            return Response(ResponseCode.ERROR, "Invalid player data")
+        try:
+            player = request.content(Player)
+        except AttributeError:
+            return bad_request_response("Invalid guess data")
+
+        if player is None or player.name is None or player.name == "":
+            return bad_request_response("Invalid player data")
 
         try:
             # TODO format to Response
-            return game_data.take_guess(player, None)
+            return ok_response(game_data.take_guess(player, None))
         except PlayerOutOfTurn as e:
-            return Response(ResponseCode.DENIED, e.errors)
+            return denied_response(str(e.errors))
 
     @staticmethod
     def handle_status_request(game_data: Game) -> Response:
         info: GameInfo = GameInfo(
-            game_data.players_as_list,
+            game_data.players_as_tuple,
             game_data.status,
             game_data.get_current_player(generate_if_none=False),
             # game_data.minesweeper
         )
-        return Response(ResponseCode.OK, info)
+        return ok_response(info)
 
 
 if __name__ == "__main__":
