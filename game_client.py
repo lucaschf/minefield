@@ -4,15 +4,15 @@ from dataclasses import asdict
 
 from dacite import from_dict, Config
 
+from dataclass.game_info import PlayerQueueInfo, GameInfo
+from dataclass.guess import Guess
+from dataclass.minesweeper_DTO import MinesweeperDTO
+from dataclass.player import Player
+from dataclass.request import Request
+from dataclass.request import RequestCode
+from dataclass.response import Response, ResponseCode
 from game import QUEUE_WAITING_TIME, GUESS_WAITING_TIME
-from game_info import PlayerQueueInfo, GameInfo
-from guess import Guess
-from minesweeper_dto import MinesweeperDTO
-from player import Player
-from request import Request
-from request import RequestCode
-from response import Response, ResponseCode
-from socket_helpers import send_data, receive_data, SERVER_PORT
+from helpers.socket_helpers import send_data, receive_data, SERVER_PORT
 
 
 class GameClient(object):

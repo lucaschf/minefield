@@ -5,3 +5,4 @@ from dataclasses import dataclass
 class MinesweeperDTO(object):
     config: dict
     coordinates: tuple
+    # TODO include all needed attributes

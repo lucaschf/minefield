@@ -1,6 +1,6 @@
 import json
 
-from EnumEncoder import EnumEncoder
+from helpers.enum_encoder import EnumEncoder
 
 SERVER_PORT = 12000
 

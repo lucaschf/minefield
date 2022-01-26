@@ -6,15 +6,16 @@ from json.decoder import JSONDecodeError
 
 from dacite import from_dict, Config
 
-from Exceptions import PlayerOutOfTurn
+from dataclass.game_info import GameInfo, PlayerQueueInfo
+from dataclass.guess import Guess
+from dataclass.player import Player
+from dataclass.request import Request
+from dataclass.request import RequestCode
+from dataclass.response import Response, bad_request_response, denied_response, ok_response, error_response, \
+    unsupported_response
+from exceptions import PlayerOutOfTurn
 from game import Game, Status
-from game_info import GameInfo, PlayerQueueInfo
-from guess import Guess
-from player import Player
-from request import Request
-from request import RequestCode
-from response import Response, bad_request_response, denied_response, ok_response, error_response, unsupported_response
-from socket_helpers import send_data, receive_data, SERVER_PORT
+from helpers.socket_helpers import send_data, receive_data, SERVER_PORT
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("")
@@ -113,7 +114,7 @@ class GameServer(object):
 
             try:
                 player = request.content(Player)
-            except AttributeError as e:
+            except AttributeError:
                 return bad_request_response("Invalid player data")
 
             if player is None or player.name is None or player.name == "":

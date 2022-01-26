@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from dataclass.player import Player
 from game import Status
-from player import Player
 
 
 @dataclass(unsafe_hash=True)

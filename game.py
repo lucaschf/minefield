@@ -5,11 +5,10 @@ from enum import Enum
 from multiprocessing import Queue
 from typing import Optional
 
-from Exceptions import PlayerOutOfTurn
-from guess import Guess
+from dataclass.guess import Guess
+from dataclass.player import Player
+from exceptions import PlayerOutOfTurn
 from minesweeper import Minesweeper
-from minesweeper_dto import MinesweeperDTO
-from player import Player
 
 PLAYER_QUEUE_SIZE = 4
 QUEUE_WAITING_TIME = 3  # seconds
@@ -121,9 +120,7 @@ class Game(object):
         self.__last_player_who_guessed = self.__player_of_the_round
         self.__change_player()
 
-        minesweeper_data = MinesweeperDTO(self.__minesweeper.config, tuple())
-
-        return minesweeper_data
+        return self.__minesweeper.to_dto()
 
     def __update_guess_time(self):
         if self.__player_of_the_round is None:

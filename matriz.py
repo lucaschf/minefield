@@ -10,4 +10,4 @@ def matriz(players):
     fieldData = minesweeper.fieldLogic(0,2,matriz)
     print(fieldData)
 
-matriz(4)
+matriz(1)
