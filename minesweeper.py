@@ -12,10 +12,9 @@ class Minesweeper:
         self.column = self.__config["column"]
         self.bombs = self.__config["bombs"]
 
-    # def __init__(self, line, column, bombs):
-    #     self.line = line
-    #     self.column = column
-    #     self.bombs = bombs
+    @property
+    def config(self):
+        return self.__config
 
     def createMatriz(self):
         matriz = []  # lista vazia

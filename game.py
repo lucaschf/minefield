@@ -6,7 +6,9 @@ from multiprocessing import Queue
 from typing import Optional
 
 from Exceptions import PlayerOutOfTurn
+from guess import Guess
 from minesweeper import Minesweeper
+from minesweeper_dto import MinesweeperDTO
 from player import Player
 
 PLAYER_QUEUE_SIZE = 4
@@ -100,7 +102,7 @@ class Game(object):
             self.__aux_players.clear()
             self.__player_of_the_round = None
 
-        if self.is_player_queue_empty and self.status == Status.running:
+        if self.is_player_queue_empty and self.status == Status.running and timeout:
             self.__status = Status.ended_due_inactivity
 
         self.__update_guess_time()
@@ -110,16 +112,18 @@ class Game(object):
         p = self.get_current_player()
         return p is not None and p.name == player.name
 
-    def take_guess(self, player: Player, guess):
-        if not self.__is_player_turn(player):
+    def take_guess(self, guess: Guess):
+        if not self.__is_player_turn(guess.player):
             err = "it is not your turn"
             raise PlayerOutOfTurn(err, err)
-        else:
-            # TODO  guess logic here
-            self.__last_player_who_guessed = self.__player_of_the_round
-            self.__change_player()
 
-        return self.__last_player_who_guessed
+        # TODO  guess logic here
+        self.__last_player_who_guessed = self.__player_of_the_round
+        self.__change_player()
+
+        minesweeper_data = MinesweeperDTO(self.__minesweeper.config, tuple())
+
+        return minesweeper_data
 
     def __update_guess_time(self):
         if self.__player_of_the_round is None:

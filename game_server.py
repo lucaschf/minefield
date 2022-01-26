@@ -9,6 +9,7 @@ from dacite import from_dict, Config
 from Exceptions import PlayerOutOfTurn
 from game import Game, Status
 from game_info import GameInfo, PlayerQueueInfo
+from guess import Guess
 from player import Player
 from request import Request
 from request import RequestCode
@@ -123,7 +124,7 @@ class GameServer(object):
 
             found = [p for p in game_data.players_as_tuple if p.name == player.name]
             if found:
-                bad_request_response(f"That's is already a player with the name '{player.name}' on the queue.")
+                return bad_request_response(f"That's is already a player with the name '{player.name}' on the queue.")
 
             game_data.add_player_to_queue(player)
             return ok_response(PlayerQueueInfo(game_data.players_as_tuple))
@@ -137,16 +138,16 @@ class GameServer(object):
             return bad_request_response("No game started")
 
         try:
-            player = request.content(Player)
+            guess = request.content(Guess)
         except AttributeError:
             return bad_request_response("Invalid guess data")
 
-        if player is None or player.name is None or player.name == "":
-            return bad_request_response("Invalid player data")
+        if guess is None or guess.player is None:
+            return bad_request_response("Invalid guess data")
 
         try:
-            # TODO format to Response
-            return ok_response(game_data.take_guess(player, None))
+            # TODO check Response if ok
+            return ok_response(game_data.take_guess(guess))
         except PlayerOutOfTurn as e:
             return denied_response(str(e.errors))
 

@@ -5,6 +5,9 @@ from dataclasses import asdict
 from dacite import from_dict, Config
 
 from game import QUEUE_WAITING_TIME, GUESS_WAITING_TIME
+from game_info import PlayerQueueInfo, GameInfo
+from guess import Guess
+from minesweeper_dto import MinesweeperDTO
 from player import Player
 from request import Request
 from request import RequestCode
@@ -75,8 +78,8 @@ class GameClient(object):
          """
         return self.__send_request(Request(RequestCode.game_status, None))
 
-    def request_take_guess(self, player_name: str) -> Response:
-        return self.__send_request(Request(RequestCode.take_guess, Player.with_not_statistics(player_name)))
+    def request_take_guess(self, guess: Guess) -> Response:
+        return self.__send_request(Request(RequestCode.take_guess, guess))
 
 
 if __name__ == "__main__":
@@ -86,38 +89,79 @@ if __name__ == "__main__":
 
     client = GameClient(RPC_SERVER_ADDRESS, SERVER_PORT)
 
-    (client.request_queue_entry("Iasmina"))
-    (client.request_queue_entry("Lucas"))
+    # USAGE EXAMPLES
+
+    # 1 add player to queue
+    #
+    # Ok Response
+    print("CASE 1 - add player to queue - SHOULD RETURN OK")
+    result = client.request_queue_entry("Iasmina")
+    print("I: ", result)
+    if result.is_ok_response():
+        player_queue = result.content(PlayerQueueInfo)
+        print("I: ", player_queue)
+    else:
+        print("E: ", result.error_body)
+
+    # Not OK reponse - Applies to all not ok response. In this case a Bad request
+    print("\nCASE 1 - add player to queue - SHOULD RETURN BAD REQUEST")
+    result = client.request_queue_entry("Iasmina")
+    print("I: ", result)
+    if result.is_ok_response():
+        player_queue = result.content(PlayerQueueInfo)
+        print("I: ", player_queue)
+    else:
+        print("E: ", result.error_body)
+
+    # 2 take guess
+    #
+    # OK Response
+    print("\nCASE 3 - take guees - SHOULD RETURN bad request with No game started")
+    result = client.request_take_guess(Guess(Player.with_not_statistics("Iasmina"), 0, 0))
+    print("I: ", result)
+    if result.is_ok_response():
+        print("I: ", result.content(MinesweeperDTO))
+    else:
+        print("E: ", result.error_body)
+
+    # 3 Get game status Info
+    #
+    # OK Response with game waiting players
+    print("\nCASE 3 - Get game status Info - SHOULD RETURN OK with game WAITING PLAYERS")
+    result = client.request_game_status()
+    print("I: ", result)
+    if result.is_ok_response():
+        print("I: ", result.content(GameInfo))
+    else:
+        print("E: ", result.error_body)
+
+    # OK Response with game started
     time.sleep(QUEUE_WAITING_TIME)
+    print("\nCASE 3 - Get game status Info - SHOULD RETURN OK with game started")
+    result = client.request_game_status()
+    print("I: ", result)
+    if result.is_ok_response():
+        print("I: ", result.content(GameInfo))
+    else:
+        print("E: ", result.error_body)
+
+    # 2 take guess
+    #
+    # OK Response
+    print("\nCASE 2 - take guees - SHOULD RETURN OK with board info")
+    result = client.request_take_guess(Guess(Player.with_not_statistics("Iasmina"), 0, 0))
+    print("I: ", result)
+    if result.is_ok_response():
+        print("I: ", result.content(MinesweeperDTO))
+    else:
+        print("E: ", result.error_body)
+
+    # OK Response with game ended due innactivity
     time.sleep(GUESS_WAITING_TIME)
-
-    print(client.request_game_status())
-    time.sleep(GUESS_WAITING_TIME)
-    print(client.request_game_status())
-
-    #
-    # print("1")
-    # time.sleep(QUEUE_WATING_TIME + 1)
-    # print(client.request_game_status())
-
-    # print(r.successful)
-    # print(r.content(list[Player]))
-    # print(client.request_queue_entry(""))
-    # print(client.request_queue_entry("Lucas"))
-    #
-    # print("SHOULD NOT ENTER")
-    # print(client.request_queue_entry("asdasd"))
-
-    # print("STATUS")
-    # r: Response = client.request_game_status()
-    # if r.successful:
-    #     print(r.content(GameInfo))
-    # else:
-    #     print(r.error_body)
-    #
-    # time.sleep(QUEUE_WATING_TIME + 1)
-    # r: Response = client.request_game_status()
-    # if r.successful:
-    #     print(r.content(GameInfo))
-    # else:
-    #     print(r.error_body)
+    print("\nCASE 3 - Get game status Info - SHOULD RETURN OK with game ended due innactivity")
+    result = client.request_game_status()
+    print("I: ", result)
+    if result.is_ok_response():
+        print("I: ", result.content(GameInfo))
+    else:
+        print("E: ", result.error_body)

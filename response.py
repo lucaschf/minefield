@@ -19,8 +19,7 @@ class Response:
     body: Optional[dict]
     error_body: Optional[str] = None
 
-    @property
-    def successful(self) -> bool:
+    def is_ok_response(self) -> bool:
         return self.response_code == ResponseCode.OK
 
     # noinspection DuplicatedCode
