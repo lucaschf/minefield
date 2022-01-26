@@ -9,6 +9,7 @@ matrizConfig.append(config2)
 matrizConfig.append(config3)
 matrizConfig.append(config4)
 
+
 def config(players):
     for i in matrizConfig:
         n = i.get('player')

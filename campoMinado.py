@@ -1,10 +1,13 @@
 from random import randint
 
+from data import config
+
+
 def createMatriz(l, c):
-    matriz = [] # lista vazia
+    matriz = []  # lista vazia
     for i in range(l):
         # cria a linha i
-        linha = [] # lista vazia
+        linha = []  # lista vazia
         for j in range(c):
             linha += [0]
 
@@ -14,60 +17,60 @@ def createMatriz(l, c):
 
     return matriz
 
+
 def printMatriz(matriz, line, column):
     for i in range(line):
         for j in range(column):
-            print(str(matriz[i][j])+'  ', end="")
+            print(str(matriz[i][j]) + '  ', end="")
         print('\n')
 
-def fillSides(matriz, x, y, line, column):
 
+def fillSides(matriz, x, y, line, column):
     # Ir para direita
-    if(y+1 < column and matriz[x][y+1] != 9):
-        matriz[x][y+1] += 1
+    if (y + 1 < column and matriz[x][y + 1] != 9):
+        matriz[x][y + 1] += 1
 
     # Ir para esquerda
-    if(y-1 >= 0 and matriz[x][y-1] != 9):
-        matriz[x][y-1] += 1
-    
+    if (y - 1 >= 0 and matriz[x][y - 1] != 9):
+        matriz[x][y - 1] += 1
 
     # Para cima
-    if(x-1 >= 0 and matriz[x-1][y] != 9):
-        matriz[x-1][y] += 1
+    if (x - 1 >= 0 and matriz[x - 1][y] != 9):
+        matriz[x - 1][y] += 1
 
     # Para baixo
-    if(x+1 < line and matriz[x+1][y] != 9):
-        matriz[x+1][y] += 1
+    if (x + 1 < line and matriz[x + 1][y] != 9):
+        matriz[x + 1][y] += 1
 
-    #Para cima e direita
-    if(x-1 >= 0 and y+1 < column and matriz[x-1][y+1] != 9):
-        matriz[x-1][y+1] += 1
-    
+    # Para cima e direita
+    if (x - 1 >= 0 and y + 1 < column and matriz[x - 1][y + 1] != 9):
+        matriz[x - 1][y + 1] += 1
+
     # Para baixo e direita
-    if(x+1 < line and y+1 < column and matriz[x+1][y+1] != 9):
-        matriz[x+1][y+1] += 1
+    if (x + 1 < line and y + 1 < column and matriz[x + 1][y + 1] != 9):
+        matriz[x + 1][y + 1] += 1
 
     # Para cima e esquerda
-    if(x-1 >=0 and y-1 >= 0 and matriz[x-1][y-1] != 9):
-        matriz[x-1][y-1] += 1
+    if (x - 1 >= 0 and y - 1 >= 0 and matriz[x - 1][y - 1] != 9):
+        matriz[x - 1][y - 1] += 1
 
     # Para baixo e esquerda
-    if(x+1 < line and y-1 >=0 and matriz[x+1][y-1] != 9):
-        matriz[x+1][y-1] += 1
-
+    if (x + 1 < line and y - 1 >= 0 and matriz[x + 1][y - 1] != 9):
+        matriz[x + 1][y - 1] += 1
 
     return matriz
+
 
 def plantBombs(matriz, line, column, quantity):
     while (quantity > 0):
         bomb = True
-        while(bomb):
+        while (bomb):
             # Realiza o sorteio de uma linha e coluna
-            x = randint(0, line-1)
-            y = randint(0, column-1)
+            x = randint(0, line - 1)
+            y = randint(0, column - 1)
 
             # Verifica se a posição na matriz possui bomba
-            if(matriz[x][y] != 9):
+            if (matriz[x][y] != 9):
                 bomb = False
                 matriz[x][y] = 9
                 matriz = fillSides(matriz, x, y, line, column)
@@ -77,15 +80,25 @@ def plantBombs(matriz, line, column, quantity):
     return matriz
 
 
-def init():
-    line = 16
-    column = 20
-    quantity = 40  # Quantidade de bombas
+def generate_board(players: int):
+    conf = config(players)
 
-    # Cria a matriz inicializando com 0
-    matriz = createMatriz(line, column)
+    lines = conf["line"]
+    columns = conf["column"]
+    bombs = conf["bombs"]
 
-    matriz = plantBombs(matriz, line, column, quantity)
-    printMatriz(matriz, line, column)
+    return plantBombs(createMatriz(lines, columns), lines, columns, bombs)
 
-init()
+# # def init():
+#     line = 16
+#     column = 20
+#     quantity = 40  # Quantidade de bombas
+#
+#     # Cria a matriz inicializando com 0
+#     matriz = createMatriz(line, column)
+#
+#     matriz = plantBombs(matriz, line, column, quantity)
+#     printMatriz(matriz, line, column)
+#
+#
+# init()

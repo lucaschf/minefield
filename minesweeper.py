@@ -13,6 +13,9 @@ class Minesweeper:
         self.positions = self.__config["availableFields"] 
         self.totalCoordinates = []
 
+    @property
+    def config(self):
+        return self.__config
 
     def createMatriz(self):
         matriz = [] # lista vazia
