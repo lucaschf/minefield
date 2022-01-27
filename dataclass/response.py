@@ -2,8 +2,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
-from dacite import from_dict, Config
-
 
 class ResponseCode(Enum):
     BAD_REQUEST = -1
@@ -21,19 +19,6 @@ class Response:
 
     def is_ok_response(self) -> bool:
         return self.response_code == ResponseCode.OK
-
-    # noinspection DuplicatedCode
-    def content(self, klass) -> Optional:
-        if not self.body:
-            return None
-
-        if type(self.body) != dict:
-            if type(self.body) != type(klass):
-                raise AttributeError(f"Expected {klass} but got {type(self.body)} instead")
-
-            return self.body
-
-        return from_dict(data_class=klass, data=self.body, config=Config(cast=[ResponseCode], check_types=False))
 
 
 def bad_request_response(error_message: str = "Bad request") -> Response:
