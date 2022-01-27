@@ -1,58 +1,20 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from gui_constants import *
 from os import environ
+from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import QEvent, Qt
+from PyQt5.QtCore import QThread
+from join_game_dialog import JoinGameDialog
+from game_updater_worker import GameUpdaterWorker
+from functools import partial
 import time
 
-
-#----------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Constants for quick access.
-
-WINDOW_WIDTH = 575
-WINDOW_HEIGHT = 600
-
-ICONS_FOLDER = './icons/'
-
-WINDOW_ICON = ICONS_FOLDER + 'icon.png'
-SMILE_ICON = ICONS_FOLDER + 'smile.png'
-FLAG_ICON = ICONS_FOLDER + 'flag.png'
-BOMB_ICON = ICONS_FOLDER + 'bomb.png'
-
-WINDOW_BACKGROUND_COLOR = 'rgb(195, 195, 195)'
-MENU_BAR_BACKGROUND_COLOR = 'rgb(235, 231, 219)'
-TIMERS_COLOR = 'rgb(220, 0, 0)'
-TIMERS_BACKGROUND_COLOR = 'rgb(0, 0, 0)'
-NUMBERS_COLORS = ["blue", "green", "red", "purple", "maroon", "rgb(0,175,180)", "black", "gray"]
-OPENED_CELL_BORDER_COLOR = 'rgb(125, 125, 125)'
-BOMB_EXPLODED_BACKGROUND_COLOR = 'rgb(220, 30, 30)'
-
-TIMERS_FONT_FAMILY = "Unispace"
-SCOREBOARD_TITLE_FONT_FAMILY = "Arial"
-SCOREBOARD_FONT_FAMILY = "MS Shell Dlg 2"
-PLAYER_TURN_FONT_FAMILY = "MS Shell Dlg 2"
-CELL_FONT_FAMILY = "Arial"
-
-TIMERS_FONT_SIZE = 16
-SCOREBOARD_TITLE_FONT_SIZE = 10
-SCOREBOARD_FONT_SIZE = 10
-PLAYER_TURN_FONT_SIZE = 12
-CELL_FONT_SIZE = 12
-
-CELL_MARGIN = 0
-DEFAULT_BOARD_ROWS = 16
-DEFAULT_BOARD_COLS = 16
-
-#----------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-# For testing.
-PLAYERS = ["Ailton", "Caren", "Giovanne", "Lucas", "Paulo", "Talita"]
-
-
-class Ui_MainWindow(QWidget):
+class MinesweeperGuiWindow(QWidget):
+    gameUpdaterThread = None
 
     def setupUi(self, MainWindow, board_size={"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS}, players=[]):
 
-        # Timers and flags counter font and stylesheet.
+        # Timers counter font and stylesheet.
         timers_font = QtGui.QFont()
         timers_font.setFamily(TIMERS_FONT_FAMILY)
         timers_font.setPointSize(TIMERS_FONT_SIZE)
@@ -86,19 +48,10 @@ class Ui_MainWindow(QWidget):
             QtWidgets.QLayout.SetDefaultConstraint)
         self.horizontalLayout.setObjectName("horizontalLayout")
 
-        self.remainingFlagsLabel = QtWidgets.QLabel(self.actionsWidget)
-        self.remainingFlagsLabel.setMinimumSize(QtCore.QSize(60, 30))
-        self.remainingFlagsLabel.setMaximumSize(QtCore.QSize(60, 30))
-        self.remainingFlagsLabel.setFont(timers_font)
-        self.remainingFlagsLabel.setStyleSheet(timers_styleSheet)
-        self.remainingFlagsLabel.setAlignment(QtCore.Qt.AlignCenter)
-        self.remainingFlagsLabel.setObjectName("remainingFlagsLabel")
-        self.horizontalLayout.addWidget(self.remainingFlagsLabel)
-
         spacerItem = QtWidgets.QSpacerItem(
             40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
-        self.gameActionPushButton = QtWidgets.QPushButton(self.actionsWidget, clicked=self.teste)
+        self.gameActionPushButton = QtWidgets.QPushButton(self.actionsWidget)
         self.gameActionPushButton.setIcon(QtGui.QIcon(SMILE_ICON))
         self.gameActionPushButton.setIconSize(QtCore.QSize(20, 20))
         sizePolicy = QtWidgets.QSizePolicy(
@@ -204,7 +157,7 @@ class Ui_MainWindow(QWidget):
         self.verticalLayout_4.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         
-        self.new_game(board_size, players)
+        self.new_game([], board_size, players)
 
         self.boardScrollArea.setWidget(self.boardScrollAreaWidgetContents)
         self.verticalLayout_2.addWidget(self.boardScrollArea)
@@ -265,15 +218,18 @@ class Ui_MainWindow(QWidget):
         self.menuAjuda = QtWidgets.QMenu(self.menubar)
         self.menuAjuda.setObjectName("menuAjuda")
         MainWindow.setMenuBar(self.menubar)
-        self.actionNovo_Jogo = QtWidgets.QAction(MainWindow)
-        self.actionNovo_Jogo.setObjectName("actionNovo_Jogo")
+        self.actionEntrar_na_Partida = QtWidgets.QAction(MainWindow)
+        self.actionEntrar_na_Partida.setObjectName("actionEntrar_na_Partida")
+        self.menuJogo.addAction(self.actionEntrar_na_Partida)
+        self.actionEntrar_na_Partida.triggered.connect(self.show_join_game_dialog)
         self.actionAjuda = QtWidgets.QAction(MainWindow)
         self.actionAjuda.setObjectName("actionAjuda")
+        #TODO: Remove or change this action.
+        '''
         self.actionTeste = QtWidgets.QAction(MainWindow)
         self.actionTeste.setObjectName("actionTeste")
-        self.menuJogo.addAction(self.actionNovo_Jogo)
         self.menuJogo.addSeparator()
-        self.menuJogo.addAction(self.actionTeste)
+        self.menuJogo.addAction(self.actionTeste)'''
         self.menuAjuda.addAction(self.actionAjuda)
         self.menubar.addAction(self.menuJogo.menuAction())
         self.menubar.addAction(self.menuAjuda.menuAction())
@@ -285,6 +241,8 @@ class Ui_MainWindow(QWidget):
         self.timer.timeout.connect(self.update_time)
         self.timer.start(0)
 
+        self.hide_turn_info()
+
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
@@ -292,7 +250,6 @@ class Ui_MainWindow(QWidget):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Minesweeper"))
         self.elapsedTimeLabel.setText(_translate("MainWindow", "000"))
-        self.remainingFlagsLabel.setText(_translate("MainWindow", "000"))
         self.scoreboardLabel.setText(_translate("MainWindow", "Scoreboard:"))
         __sortingEnabled = self.scoreboardListWidget.isSortingEnabled()
         self.scoreboardListWidget.setSortingEnabled(False)
@@ -304,30 +261,63 @@ class Ui_MainWindow(QWidget):
         self.turnTimeLabel.setText(_translate("MainWindow", "000"))
         self.menuJogo.setTitle(_translate("MainWindow", "Jogo"))
         self.menuAjuda.setTitle(_translate("MainWindow", "Ajuda"))
-        self.actionNovo_Jogo.setText(_translate("MainWindow", "Novo Jogo"))
+        self.actionEntrar_na_Partida.setText(_translate("MainWindow", "Entrar na Partida"))
         self.actionAjuda.setText(_translate("MainWindow", "Ajuda"))
-        self.actionTeste.setText(_translate("MainWindow", "Teste"))
+        #TODO: Remove or change.
+        #self.actionTeste.setText(_translate("MainWindow", "Teste"))
 
 
     #--------------------------------------------------------------------------------
     # Custom Methods
 
+    #TODO: Connect the methods that will be used in the worker.
+    def start_GameUpdaterWorker(self):
+        if self.gameUpdaterThread is None or self.gameUpdaterThread.isFinished():
+            self.gameUpdaterThread = QThread()
+            self.gameUpdaterWorker = GameUpdaterWorker()
+            #self.gameUpdaterWorker.minesweeper_gui = self
+            self.gameUpdaterWorker.moveToThread(self.gameUpdaterThread)
+
+            self.gameUpdaterThread.started.connect(partial(self.gameUpdaterWorker.run, self))
+            self.gameUpdaterWorker.finished.connect(self.gameUpdaterThread.quit)
+            self.gameUpdaterWorker.finished.connect(self.gameUpdaterWorker.deleteLater)
+            self.gameUpdaterThread.finished.connect(self.gameUpdaterThread.deleteLater)
+
+            # Connect the methods here, as the one bellow.
+            #self.gameUpdaterWorker.open_cell.connect(self.open_cell)
+            self.gameUpdaterWorker.open_cell.connect(self.open_cell)
+
+            self.gameUpdaterThread.start()
+            return True
+        return False
+
+    def show_join_game_dialog(self):
+        ui = JoinGameDialog()
+        ui.setupUi(self)
+        ui.setModal(True)
+        ui.exec()
+
+    #TODO: Implement this method and create the dialog.
+    def show_loading_game_dialog(self):
+        pass
+
+    #TODO: Implement this method and create the dialog.
+    def close_loading_game_dialog(self):
+        pass
+
+    #TODO: Implement this method and create the dialog.
+    def show_resut_dialog(self):
+        pass
+
     # Create a new board and scoreboard.
-    def new_game(self, board_size={"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS}, players=[]):
+    def new_game(self, result_board, board_size={"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS}, players=[]):
+        self.result_board = result_board
         self.new_scoreboard(players)
         self.new_board(board_size)
 
-    # Create a new scoreboard.
-    def new_scoreboard(self, players=[]):
-        self.players = players
-        self.scoreboardListWidget.clear()
-        for player in self.players:
-            item = QtWidgets.QListWidgetItem()
-            item.setText(player)
-            self.scoreboardListWidget.addItem(item)
-
     # Create a new board.
     def new_board(self, board_size={"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS}):
+        # TODO: Delete the print.
         print("New board. Size: {} x {}".format(board_size['rows'], board_size['columns']))
 
         # Delete the old board widgets.
@@ -377,62 +367,14 @@ class Ui_MainWindow(QWidget):
         # Add the grid to the layout.
         self.verticalLayout_4.addLayout(self.gridLayout)
 
-    # Update all cells.
-    # board: a matrix containing a dict with the informations about each cell in the format: {"opened": bool, "value": int, 'flagged': bool,"bomb": bool, "exploded": bool}.
-    def update_board(self, board):
-        for row in range(len(board)):
-            for column in range(len(board[row])):
-                self.update_cell(row, column, board[row][column])
-
-    # Update a cell.
-    # cell: a dict with the informations about the cell in the format: {"opened": bool, "value": int, 'flagged': bool,"bomb": bool, "exploded": bool}.
-    def update_cell(self, row, column, cell):
-        # Updating the numbers.
-        field = self.board[row][column]
-        if cell['opened'] == True:
-            field.setFlat(True)
-            if(cell['value'] > 0):
-                field.setText(str(cell['value']))
-                field.setStyleSheet("border: 1px inset " + OPENED_CELL_BORDER_COLOR + ";color: " + NUMBERS_COLORS[cell['value'] - 1] + ";")
-            else:
-                field.setText("")
-                field.setStyleSheet("border: 1px inset " + OPENED_CELL_BORDER_COLOR)
-
-        # Updating the icons.
-        if cell['flagged'] == True:
-            field.setIcon(QtGui.QIcon(FLAG_ICON))
-            field.setText("")
-        elif cell['bomb'] == True and cell['opened'] == True:
-            field.setIcon(QtGui.QIcon(BOMB_ICON))
-            field.setText("")
-            if cell['exploded'] == True:
-                field.setStyleSheet("border: 1px inset " + OPENED_CELL_BORDER_COLOR + ";background-color: " + BOMB_EXPLODED_BACKGROUND_COLOR)
-        else:
-            field.setIcon(QtGui.QIcon())
-    
-    # Executed automatically by the QTimer: "self.timer". Update the timers.
-    def update_time(self):
-        if self.isGameRunnig:
-            now = time.time()
-            self.elapsedTimeLabel.setText(str(int(now - self.startTime)).zfill(3))
-            self.turnTimeLabel.setText(str(int(now - self.turnStartTime)).zfill(3))
-            if(int(now - self.turnStartTime) == 10):
-                # Testing
-                self.next_turn(self.next_player(self.playerTurnLineEdit.text()))
-
-    # Update the number of flags remaining.
-    def update_remaining_flags(self, remaining_flags):
-        self.remainingFlagsLabel.setText(str(remaining_flags).zfill(3))
-
-    # Update the scoreboard.
-    # players: a list of dicts containing the players and their scores in the format: {"name": str, "score": int}.
-    def update_scoreboard(self, players):
-        _translate = QtCore.QCoreApplication.translate
-        for player in players:
-            index = self.find_player_index(player['name'])
-            if index != None:
-                item = self.scoreboardListWidget.item(index)
-                item.setText(_translate("MainWindow", player['name'] + " - " + str(player['score'])))
+    # Create a new scoreboard.
+    def new_scoreboard(self, players=[]):
+        self.players = players
+        self.scoreboardListWidget.clear()
+        for player in self.players:
+            item = QtWidgets.QListWidgetItem()
+            item.setText(player)
+            self.scoreboardListWidget.addItem(item)
 
     # Return the index of the player or None if the player is not in the game.
     def find_player_index(self, player):
@@ -443,16 +385,19 @@ class Ui_MainWindow(QWidget):
 
     # Add a player to the game.
     def add_player(self, player):
-        self.players.append(player)
-        item = QtWidgets.QListWidgetItem()
-        item.setText(player)
-        self.scoreboardListWidget.addItem(item)
+        if player not in self.players:
+            self.players.append(player)
+            item = QtWidgets.QListWidgetItem()
+            item.setText(player)
+            self.scoreboardListWidget.addItem(item)
+            return True
+        return False
 
     # Remove a player from the game.
     def remove_player(self, player):
         index = self.find_player_index(player)
-        self.players.remove(player)
         if index != None:
+            self.players.remove(player)
             self.scoreboardListWidget.takeItem(index)
 
     # Strike out the name of the player who lost the game.
@@ -474,10 +419,17 @@ class Ui_MainWindow(QWidget):
     # Stop game and the timers.
     def end_game(self):
         self.isGameRunnig = False
-            
+
+    def hide_turn_info(self):
+        self.turnInfoWidget.hide()
+
+    def show_turn_info(self):
+        self.turnInfoWidget.show()
+
     # Reset the turn timer and select the next player.
     def next_turn(self, player):
         _translate = QtCore.QCoreApplication.translate
+        self.turnInfoWidget.show()
         self.turnStartTime = time.time()
         player_index = self.find_player_index(player)
         if player_index != None:
@@ -491,6 +443,57 @@ class Ui_MainWindow(QWidget):
         else:
             return 0
 
+    # Update the scoreboard.
+    # players: a list of dicts containing the players and their scores in the format: {"name": str, "score": int}.
+    def update_scoreboard(self, players):
+        _translate = QtCore.QCoreApplication.translate
+        for player in players:
+            index = self.find_player_index(player['name'])
+            if index != None:
+                item = self.scoreboardListWidget.item(index)
+                item.setText(_translate("MainWindow", player['name'] + " - " + str(player['score'])))
+
+    # TODO: Implement this method according to the data received from the server and the board stored in the GUI.
+    # Open all cells that haven't been opened yet in the GUI.
+    def update_board(self, board):
+        pass
+
+    # TODO: Implement this method according to the data received from the server and the board stored in the GUI.
+    # Open a cell.
+    def open_cell(self, row, column):
+        print("Abriu -> {} - {}".format(row, column))
+        pass
+    
+    # Open and draw the number in a cell.
+    def open_cell_number(self, row, column, value):
+        cell = self.board[row][column]
+        cell.setFlat(True)
+        if(value > 0):
+            cell.setText(str(value))
+            cell.setStyleSheet("border: 1px inset " + OPENED_CELL_BORDER_COLOR + ";color: " + NUMBERS_COLORS[value - 1] + ";")
+        else:
+            cell.setText("")
+            cell.setStyleSheet("border: 1px inset " + OPENED_CELL_BORDER_COLOR)
+
+    # Open and draw the bomb in a cell.
+    # exploded: True if the bomb was exploded by this player.
+    def open_cell_bomb(self, row, column, exploded=False):
+        cell = self.board[row][column]
+        cell.setIcon(QtGui.QIcon(BOMB_ICON))
+        cell.setText("")
+        if exploded == True:
+            cell.setStyleSheet("border: 1px inset " + OPENED_CELL_BORDER_COLOR + ";background-color: " + BOMB_EXPLODED_BACKGROUND_COLOR)
+
+    # Executed automatically by the QTimer: "self.timer". Update the timers.
+    def update_time(self):
+        if self.isGameRunnig:
+            now = time.time()
+            self.elapsedTimeLabel.setText(str(int(now - self.startTime)).zfill(3))
+            self.turnTimeLabel.setText(str(int(now - self.turnStartTime)).zfill(3))
+
+
+    # Methods to handle the clicks on the cells.
+
     # Handle the clicks in each cell.
     def eventFilter(self, QObject, event):
         if event.type() == QEvent.MouseButtonPress and self.isGameRunnig == True:
@@ -499,89 +502,32 @@ class Ui_MainWindow(QWidget):
                     for column, button in enumerate(buttons):
                         if button == QObject:
                             if event.button() == Qt.RightButton:
-                                self.mark_flag(row, column);
+                                self.right_click(row, column);
                             elif event.button() == Qt.LeftButton:
-                                self.open_field(row, column);
+                                self.left_click(row, column);
                             elif event.button() == Qt.MiddleButton:
-                                self.open_all_around(row, column);
+                                self.middle_click(row, column);
         return False
 
+
+    # TODO: Implement the following methods to send the guesses to the server.
+
     # Called when the user right clicks on a cell.
-    def mark_flag(self, row, column):
+    def right_click(self, row, column):
         # Testing.
-        self.update_cell(row, column, {'opened': False, 'flagged': True, 'value': 0})
-        print("Flag: " + str(row) + " " + str(column))
-        self.next_turn(self.next_player(self.playerTurnLineEdit.text()))
+        print("Right Click: " + str(row) + " " + str(column))
 
     # Called when the user left clicks on a cell.
-    def open_field(self, row, column):
+    def left_click(self, row, column):
         # Testing.
-        print("Open: " + str(row) + " " + str(column))
-        self.next_turn(self.next_player(self.playerTurnLineEdit.text()))
+        print("Left Click: " + str(row) + " " + str(column))
 
     # Called when the user middle clicks on a cell.
-    def open_all_around(self, row, column):
+    def middle_click(self, row, column):
         # Testing.
-        print("Open All Around: " + str(row) + " " + str(column))
-        self.next_turn(self.next_player(self.playerTurnLineEdit.text()))
+        print("Middle Click: " + str(row) + " " + str(column))
 
-
-#----------------------------------------------------------------------------------------------------------------------
-    # Testing the methods.
-
-    def next_player(self, player):
-        player_index = self.find_player_index(player)
-        if player_index != None:
-            player_index += 1
-            if player_index >= len(self.players):
-                player_index = 0
-        else:
-            player_index = 0
-
-        return self.players[player_index]
         
-
-    def teste(self):
-        import random
-        players = []
-        for p in PLAYERS:
-            player = {}
-            player['score'] = random.randint(0, 100)
-            player['name'] = p
-            players.append(player)
-
-        self.update_scoreboard(players)
-
-        size = random.randint(1, 50)
-        self.new_board({"rows": size, "columns": size})
-        board = []
-        exploded = False
-        for row in range(self.board_size['rows']):
-            board.append([])
-            for column in range(self.board_size['columns']):
-                opened = player['score'] = random.randint(0, 1)
-                if random.randint(0, 1) == 1:
-                    board[row].append({"opened": True, "value": 0, "bomb": True, "exploded": False})
-                    if exploded == False:
-                        if random.randint(0, 1) == 1:
-                            exploded = True
-                            board[row][column]["exploded"] = True
-                else:
-                    board[row].append({"opened": True if opened == 0 else False, "value": random.randint(0, 8), "bomb": False})
-        
-        for row in range(self.board_size['rows']):
-            board.append([])
-            for column in range(self.board_size['columns']):
-                if board[row][column]['opened'] == False:
-                    board[row][column]['flagged'] = True if random.randint(0, 1) == 1 else False
-                else:
-                    board[row][column]['flagged'] = False
-
-        self.eliminate_player(self.players[random.randint(0, len(self.players) - 1)])
-        self.update_board(board)
-        self.update_remaining_flags(random.randint(0, 100))
-        self.start_game()
-        self.remove_player("Ailton")
 #-----------------------------------------------------------------------------------------------------------------------
 
 def suppress_qt_warnings():
@@ -595,7 +541,7 @@ if __name__ == "__main__":
     suppress_qt_warnings()
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow, {"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS}, PLAYERS)
+    ui = MinesweeperGuiWindow()
+    ui.setupUi(MainWindow, {"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS})
     MainWindow.show()
     sys.exit(app.exec_())
