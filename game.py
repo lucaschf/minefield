@@ -1,25 +1,19 @@
 # import queue
 import threading
 import time
-from enum import Enum
 from multiprocessing import Queue
 from typing import Optional
 
 from dataclass.guess import Guess
 from dataclass.player import Player
-from exceptions import PlayerOutOfTurn
+from enums.game_status import GameStatus
+from exceptions.player_out_of_turn import PlayerOutOfTurn
 from minesweeper import Minesweeper
 
 PLAYER_QUEUE_SIZE = 4
 QUEUE_WAITING_TIME = 3  # seconds
 GUESS_WAITING_TIME = 2  # seconds
-
-
-class Status(Enum):
-    waiting_players = 0
-    running = 1
-    ended = 2
-    ended_due_inactivity = 3
+MAXIMUM_TOLERANCE_OF_LOST_ROUNDS = 1
 
 
 class Game(object):
@@ -31,8 +25,9 @@ class Game(object):
         self.__last_player_joined_in: time = None
         self.__last_player_interaction: time = None
         self.__minesweeper: Optional[Minesweeper] = None
-        self.__status: Status = Status.waiting_players
+        self.__status: GameStatus = GameStatus.waiting_players
         self.__aux_players: {Player} = set()
+        self.__timeout_check = False
 
     @property
     def is_player_queue_full(self) -> bool:
@@ -47,7 +42,7 @@ class Game(object):
         return self.__last_player_joined_in
 
     @property
-    def status(self) -> Status:
+    def status(self) -> GameStatus:
         return self.__status
 
     @property
@@ -68,11 +63,12 @@ class Game(object):
         return self.__minesweeper
 
     def add_player_to_queue(self, player: Player):
-        if self.__players.empty():
-            thSt = threading.Thread(target=self.start_game_if_requirements_met)
+        if self.__players.empty() and not GameStatus.running == self.status:
+            thSt = threading.Thread(target=self.__start_game_if_requirements_met)
             thSt.start()
+        else:
+            self.__last_player_joined_in = time.time()
 
-        self.__last_player_joined_in = time.time()
         self.__players.put_nowait(player.with_not_statistics(player.name))
         self.__aux_players.add(player)
 
@@ -86,26 +82,32 @@ class Game(object):
 
         return self.__player_of_the_round
 
-    def __change_player(self, timeout: bool = False):
-        current = self.__player_of_the_round
+    def __change_player(self, by_timeout: bool = False):
+        current: Player = self.__player_of_the_round
 
         if not self.__players.empty():
             self.__player_of_the_round = self.__players.get_nowait()
 
-            if current is not None:
-                if timeout:
-                    self.__aux_players.remove(current)
-                else:
-                    self.add_player_to_queue(current)
+            if current is not None:  # if None, is the first player
+                self.__aux_players.remove(current)  # remove from aux since we add it again if timeout not exceeded
+                updated = current.clone()  # aux variable to change the lost rounds
+
+                if by_timeout:
+                    updated.lost_rounds += 1
+                elif updated.lost_rounds > 0:
+                    updated.lost_rounds -= 1
+
+                if current == self.__player_of_the_round:
+                    self.__player_of_the_round = updated
+
+                # if have not over-offthe maximum number of rounds without playing, keep in the line of players
+                if updated.lost_rounds < MAXIMUM_TOLERANCE_OF_LOST_ROUNDS:
+                    self.add_player_to_queue(updated)
         else:
             self.__aux_players.clear()
             self.__player_of_the_round = None
 
-        if self.is_player_queue_empty and self.status == Status.running and timeout:
-            self.__status = Status.ended_due_inactivity
-
         self.__update_guess_time()
-        self.__start_guess_timeout_checker()
 
     def __is_player_turn(self, player: Player):
         p = self.get_current_player()
@@ -116,11 +118,14 @@ class Game(object):
             err = "it is not your turn"
             raise PlayerOutOfTurn(err, err)
 
-        # TODO  guess logic here
         self.__last_player_who_guessed = self.__player_of_the_round
+        result = self.__minesweeper.verify_position(guess.line, guess.column)
+
+        # TODO score logic here
+
         self.__change_player()
 
-        return self.__minesweeper.to_dto()
+        return result
 
     def __update_guess_time(self):
         if self.__player_of_the_round is None:
@@ -137,25 +142,28 @@ class Game(object):
         return diff >= maximum_time
 
     def start(self):
-        self.__status = Status.running
-        self.reset_queue_timeout()
+        self.__status = GameStatus.running
+        self.__reset_queue_timeout()
         self.__minesweeper = Minesweeper(self.__players.qsize())
         self.__change_player()
+        self.__start_guess_timeout_checker()
 
-    def start_game_if_requirements_met(self):
-        while self.status == Status.waiting_players:
+    def __start_game_if_requirements_met(self):
+        while self.status == GameStatus.waiting_players:
             if self.queueing_timeout or self.is_player_queue_full:
                 self.start()
 
-    def reset_queue_timeout(self):
+    def __reset_queue_timeout(self):
         self.__last_player_joined_in = None
 
     def __start_guess_timeout_checker(self):
-        th_timeout: threading.Thread = threading.Thread(target=self.__pass_the_turn_if_inactive_player,
-                                                        args=[self.__player_of_the_round])
+        th_timeout: threading.Thread = threading.Thread(target=self.__pass_the_turn_if_inactive_player)
         th_timeout.start()
 
-    def __pass_the_turn_if_inactive_player(self, expected_player: Player):
-        while self.__player_of_the_round is not None and self.__player_of_the_round.name == expected_player.name:
+    def __pass_the_turn_if_inactive_player(self):
+        while True:
             if self.guessing_timeout:
                 self.__change_player(True)
+            if len(self.__aux_players) == 0 and self.status == GameStatus.running:
+                self.__status = GameStatus.ended_due_inactivity
+                break
