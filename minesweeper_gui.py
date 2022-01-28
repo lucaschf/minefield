@@ -1,11 +1,11 @@
-from gui_constants import *
+from ui.gui_constants import *
 from os import environ
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import QEvent, Qt
 from PyQt5.QtCore import QThread
-from dialogs.join_game_dialog import JoinGameDialog
-from game_updater_worker import GameUpdaterWorker
+from ui.dialogs.join_game_dialog import JoinGameDialog
+from ui.game_updater_worker import GameUpdaterWorker
 from functools import partial
 import time
 

@@ -4,7 +4,7 @@
 WINDOW_WIDTH = 575
 WINDOW_HEIGHT = 600
 
-ICONS_FOLDER = './icons/'
+ICONS_FOLDER = 'ui/icons/'
 
 WINDOW_ICON = ICONS_FOLDER + 'icon.png'
 SMILE_ICON = ICONS_FOLDER + 'smile.png'
