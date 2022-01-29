@@ -66,10 +66,10 @@ class Game(object):
 
     def add_player_to_queue(self, player: Player):
         if self.__players.empty() and not GameStatus.running == self.status:
-            self.__last_player_joined_in = time.time()
             thSt = threading.Thread(target=self.__start_game_if_requirements_met)
             thSt.start()
 
+        self.__last_player_joined_in = time.time()
         self.__players.put_nowait(player.with_not_statistics(player.name))
         self.__aux_players.add(player)
 
