@@ -14,7 +14,7 @@ PLAYER_QUEUE_SIZE = 4
 QUEUE_WAITING_TIME = 3  # seconds
 GUESS_WAITING_TIME = 2  # seconds
 MAXIMUM_TOLERANCE_OF_LOST_ROUNDS = 1
-
+WAIT_TO_RESTART = 15 # seconds
 
 class Game(object):
 
@@ -28,6 +28,7 @@ class Game(object):
         self.__status: GameStatus = GameStatus.waiting_players
         self.__aux_players: {Player} = set()
         self.__timeout_check = False
+        self.__aux_score = 0
 
     @property
     def is_player_queue_full(self) -> bool:
@@ -102,6 +103,7 @@ class Game(object):
 
                 # if have not over-offthe maximum number of rounds without playing, keep in the line of players
                 if updated.lost_rounds < MAXIMUM_TOLERANCE_OF_LOST_ROUNDS:
+                    updated.score = self.__aux_score
                     self.add_player_to_queue(updated)
         else:
             self.__aux_players.clear()
@@ -121,7 +123,7 @@ class Game(object):
         self.__last_player_who_guessed = self.__player_of_the_round
         result = self.__minesweeper.verify_position(guess.line, guess.column)
 
-        # TODO score logic here
+        self.__aux_score = result.score
 
         self.__change_player()
 
@@ -147,6 +149,7 @@ class Game(object):
         self.__minesweeper = Minesweeper(self.__players.qsize())
         self.__change_player()
         self.__start_guess_timeout_checker()
+        self.thread_restart()
 
     def __start_game_if_requirements_met(self):
         while self.status == GameStatus.waiting_players:
@@ -159,6 +162,26 @@ class Game(object):
     def __start_guess_timeout_checker(self):
         th_timeout: threading.Thread = threading.Thread(target=self.__pass_the_turn_if_inactive_player)
         th_timeout.start()
+
+    def __restart_game(self):
+        while True:
+            if self.__status == GameStatus.ended or self.__status == GameStatus.ended_due_inactivity:
+                time.sleep(WAIT_TO_RESTART)
+                self.__players = Queue(maxsize=PLAYER_QUEUE_SIZE)
+                self.__player_of_the_round: Optional[Player] = None
+                self.__last_player_who_guessed: Optional[Player] = None
+                self.__last_player_joined_in: time = None
+                self.__last_player_interaction: time = None
+                self.__minesweeper: Optional[Minesweeper] = None
+                self.__status: GameStatus = GameStatus.waiting_players
+                self.__aux_players: {Player} = set()
+                self.__timeout_check = False
+                self.__aux_score = 0
+                break
+
+    def __thread_restart(self):
+        th_restart: threading.Thread = threading.Thread(target=self.__restart_game)
+        th_restart.start()
 
     def __pass_the_turn_if_inactive_player(self):
         while True:
