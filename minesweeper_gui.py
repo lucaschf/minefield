@@ -1,3 +1,8 @@
+import socket
+from dataclass.guess import Guess
+from enums.game_status import GameStatus
+from game_client import GameClient
+from helpers.socket_helpers import SERVER_PORT
 from ui.gui_constants import *
 from os import environ
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -14,6 +19,9 @@ import time
 class MinesweeperGuiWindow(QWidget):
     gameUpdaterThread = None
     loading_game_dialog = None
+    h_name = socket.gethostname()
+    RPC_SERVER_ADDRESS = socket.gethostbyname(h_name)
+    client = GameClient(RPC_SERVER_ADDRESS, SERVER_PORT)
 
     def setupUi(self, MainWindow, board_size={"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS}, players=[]):
 
@@ -277,6 +285,8 @@ class MinesweeperGuiWindow(QWidget):
             self.gameUpdaterWorker.start_game.connect(self.start_game)
             self.gameUpdaterWorker.next_turn.connect(self.next_turn)
             self.gameUpdaterWorker.show_turn_info.connect(self.show_turn_info)
+            self.gameUpdaterWorker.close_loading_game_dialog.connect(self.close_loading_game_dialog)
+            self.gameUpdaterWorker.update_turn_widgets.connect(self.update_turn_widgets)
 
             self.gameUpdaterThread.start()
             return True
@@ -432,15 +442,23 @@ class MinesweeperGuiWindow(QWidget):
     def show_turn_info(self):
         self.turnInfoWidget.show()
 
-    # Reset the turn timer and select the next player.
-    def next_turn(self, player):
+    def update_turn_widgets(self, player):
         _translate = QtCore.QCoreApplication.translate
-        # self.turnInfoWidget.show()
-        self.turnStartTime = time.time()
         player_index = self.find_player_index(player)
         if player_index != None:
             self.scoreboardListWidget.setCurrentRow(player_index)
             self.playerTurnLineEdit.setText(_translate("MainWindow", player.name))
+
+    # Reset the turn timer and select the next player.
+    def next_turn(self, player):
+        # _translate = QtCore.QCoreApplication.translate
+        # self.turnInfoWidget.show()
+        self.turnStartTime = time.time()
+        self.update_turn_widgets(player)
+        # player_index = self.find_player_index(player)
+        # if player_index != None:
+        #     self.scoreboardListWidget.setCurrentRow(player_index)
+        #     self.playerTurnLineEdit.setText(_translate("MainWindow", player.name))
 
     # Get curret game time.
     def get_game_time(self):
@@ -466,15 +484,21 @@ class MinesweeperGuiWindow(QWidget):
 
     # TODO: Implement this method according to the data received from the server and the board stored in the GUI.
     # Open a cell.
-    def open_cell(self, row, column):
-        print("Abriu -> {} - {}".format(row, column))
-        pass
+    def open_cell(self, row, column, value, exploded=False):
+        # print("Abriu -> {} - {}".format(row, column))
+        cell = self.board[row][column]
+        if not cell.isFlat():
+            if(value != 9):
+                self.open_cell_number(row, column, value)
+            else:
+                self.open_cell_bomb(row, column, exploded)
+        # pass
     
     # Open and draw the number in a cell.
     def open_cell_number(self, row, column, value):
         cell = self.board[row][column]
         cell.setFlat(True)
-        if(value > 0):
+        if(value > 0 and value < 9):
             cell.setText(str(value))
             cell.setStyleSheet("border: 1px inset " + OPENED_CELL_BORDER_COLOR + ";color: " + NUMBERS_COLORS[value - 1] + ";")
         else:
@@ -485,10 +509,13 @@ class MinesweeperGuiWindow(QWidget):
     # exploded: True if the bomb was exploded by this player.
     def open_cell_bomb(self, row, column, exploded=False):
         cell = self.board[row][column]
+        cell.setFlat(True)
         cell.setIcon(QtGui.QIcon(BOMB_ICON))
         cell.setText("")
         if exploded == True:
             cell.setStyleSheet("border: 1px inset " + OPENED_CELL_BORDER_COLOR + ";background-color: " + BOMB_EXPLODED_BACKGROUND_COLOR)
+        else:
+            cell.setStyleSheet("border: 1px inset " + OPENED_CELL_BORDER_COLOR)
 
     # Executed automatically by the QTimer: "self.timer". Update the timers.
     def update_time(self):
@@ -507,12 +534,13 @@ class MinesweeperGuiWindow(QWidget):
                 for row, buttons in enumerate(self.board):
                     for column, button in enumerate(buttons):
                         if button == QObject:
-                            if event.button() == Qt.RightButton:
-                                self.right_click(row, column);
-                            elif event.button() == Qt.LeftButton:
-                                self.left_click(row, column);
-                            elif event.button() == Qt.MiddleButton:
-                                self.middle_click(row, column);
+                            if not button.isFlat():
+                                if event.button() == Qt.RightButton:
+                                    self.right_click(row, column);
+                                elif event.button() == Qt.LeftButton:
+                                    self.left_click(row, column);
+                                elif event.button() == Qt.MiddleButton:
+                                    self.middle_click(row, column);
         return False
 
 
@@ -527,6 +555,15 @@ class MinesweeperGuiWindow(QWidget):
     def left_click(self, row, column):
         # Testing.
         print("Left Click: " + str(row) + " " + str(column))
+        result = self.client.request_game_status()
+        # If the game is running and it is the clicking player's turn, send the clicked coordinates to the server to make a guess
+        if(result.body.status == GameStatus.running and result.body.player_of_the_round.name == self.player_name):
+            result_guess = self.client.request_take_guess(Guess(result.body.player_of_the_round, row, column))
+            if result_guess.is_ok_response:
+                if(result_guess.body.bomb == True):
+                    self.open_cell(row, column, 9, True)
+        else:
+            print('voce não clicou na hora certa')
 
     # Called when the user middle clicks on a cell.
     def middle_click(self, row, column):

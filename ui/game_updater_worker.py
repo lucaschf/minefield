@@ -1,4 +1,5 @@
 import socket
+from turtle import update
 from PyQt5.QtCore import pyqtSignal, QObject
 import time
 import random
@@ -16,18 +17,21 @@ os.sys.path.append("..")
 class GameUpdaterWorker(QObject):
     # Receives connection with main thread methods to emit signals.
     finished = pyqtSignal()
-    open_cell = pyqtSignal(int, int)
+    open_cell = pyqtSignal(int, int, int)
     new_game = pyqtSignal(tuple, dict, tuple)
     start_game = pyqtSignal()
     next_turn = pyqtSignal(Player)
     show_turn_info = pyqtSignal()
     close_loading_game_dialog = pyqtSignal()
+    left_click = pyqtSignal(int, int)
+    update_turn_widgets = pyqtSignal(Player)
 
     def run(self, minesweeper_gui):
         h_name = socket.gethostname()
         RPC_SERVER_ADDRESS = socket.gethostbyname(h_name)
         client = GameClient(RPC_SERVER_ADDRESS, SERVER_PORT)
         flag = 0
+        current_player = None
         while True:
             # Receive the data form the server
             # Before start the game, add the name of the new players to the scoreboard to have a visual feedback.
@@ -43,6 +47,7 @@ class GameUpdaterWorker(QObject):
                 if(result.body.status != GameStatus.ended and result.body.status != GameStatus.ended_due_inactivity):
                     if result.body.status == GameStatus.running:
                         flag += 1
+                        #When the game starts
                         if flag == 1:
                             board_size = {"rows" : len(result.body.minesweeper.board), "columns" : len(result.body.minesweeper.board[0])}
                             self.new_game.emit(result.body.minesweeper.board, board_size, result.body.players)
@@ -50,21 +55,37 @@ class GameUpdaterWorker(QObject):
                             self.next_turn.emit(result.body.player_of_the_round)
                             self.show_turn_info.emit()
                             self.close_loading_game_dialog.emit()
+                            if result.body.player_of_the_round != current_player:
+                                current_player = result.body.player_of_the_round
+                        
+                        # When the game is running:
+                        # Call the methods to update the GUI with the received data.
+                        # self.progress.emit(parametros)
+                        # self.open_cell.emit(random.randint(0, minesweeper_gui.board_size['rows'] - 1), random.randint(0, minesweeper_gui.board_size['columns'] - 1))
+                        # updates the UI for all players
                         else:
-                            pass
+                            self.update_turn_widgets.emit(result.body.player_of_the_round)
+                            open_coordinates = result.body.minesweeper.coordinates
+                            if len(open_coordinates) > 0:
+                                for cell in open_coordinates:
+                                    if(result.body.minesweeper.board[cell[0]][cell[1]] != 9):
+                                        self.open_cell.emit(cell[0], cell[1], result.body.minesweeper.board[cell[0]][cell[1]])
+                            if result.body.player_of_the_round != current_player:
+                                current_player = result.body.player_of_the_round
+                                self.next_turn.emit(result.body.player_of_the_round)
+                            # else:
+                            #     self.open_cell.emit(open_coordinates[0], open_coordinates[1])
+                            #     pass
+                                # print("não é sua vez")
                     
 
                         
                 else:
-                    print('b')
-                    print(result.body)
+                    pass
 
             
                 
-            # When the game is running:
-            # Call the methods to update the GUI with the received data.
-            # self.progress.emit(parametros)
-            # self.open_cell.emit(random.randint(0, minesweeper_gui.board_size['rows'] - 1), random.randint(0, minesweeper_gui.board_size['columns'] - 1))
+            
             
             time.sleep(2)
 
