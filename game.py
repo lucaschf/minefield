@@ -11,10 +11,11 @@ from exceptions.player_out_of_turn import PlayerOutOfTurn
 from minesweeper import Minesweeper
 
 PLAYER_QUEUE_SIZE = 4
-QUEUE_WAITING_TIME = 3  # seconds
+QUEUE_WAITING_TIME = 5  # seconds
 GUESS_WAITING_TIME = 2  # seconds
 MAXIMUM_TOLERANCE_OF_LOST_ROUNDS = 1
-WAIT_TO_RESTART = 15 # seconds
+WAIT_TO_RESTART = 15  # seconds
+
 
 class Game(object):
 
@@ -65,10 +66,9 @@ class Game(object):
 
     def add_player_to_queue(self, player: Player):
         if self.__players.empty() and not GameStatus.running == self.status:
+            self.__last_player_joined_in = time.time()
             thSt = threading.Thread(target=self.__start_game_if_requirements_met)
             thSt.start()
-        else:
-            self.__last_player_joined_in = time.time()
 
         self.__players.put_nowait(player.with_not_statistics(player.name))
         self.__aux_players.add(player)
@@ -149,7 +149,7 @@ class Game(object):
         self.__minesweeper = Minesweeper(self.__players.qsize())
         self.__change_player()
         self.__start_guess_timeout_checker()
-        self.thread_restart()
+        self.__thread_restart()
 
     def __start_game_if_requirements_met(self):
         while self.status == GameStatus.waiting_players:
@@ -184,7 +184,7 @@ class Game(object):
         th_restart.start()
 
     def __pass_the_turn_if_inactive_player(self):
-        while True:
+        while GameStatus.running == self.status:
             if self.guessing_timeout:
                 self.__change_player(True)
             if len(self.__aux_players) == 0 and self.status == GameStatus.running:

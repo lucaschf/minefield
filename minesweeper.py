@@ -225,4 +225,4 @@ class Minesweeper:
             return GuessResult(False, [x, y], won, 10)
 
     def to_dto(self):
-        return MinesweeperDTO(tuple(self.totalCoordinates), tuple(self.matriz))
+        return MinesweeperDTO(self.__config, tuple(self.totalCoordinates), tuple(self.matriz))
