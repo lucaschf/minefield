@@ -5,12 +5,15 @@ from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import QEvent, Qt
 from PyQt5.QtCore import QThread
 from ui.dialogs.join_game_dialog import JoinGameDialog
+from ui.dialogs.loading_dialog import LoadingDialog
+from ui.dialogs.result_dialog import ResultDialog
 from ui.game_updater_worker import GameUpdaterWorker
 from functools import partial
 import time
 
 class MinesweeperGuiWindow(QWidget):
     gameUpdaterThread = None
+    loading_game_dialog = None
 
     def setupUi(self, MainWindow, board_size={"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS}, players=[]):
 
@@ -215,24 +218,12 @@ class MinesweeperGuiWindow(QWidget):
         self.menubar.setObjectName("menubar")
         self.menuJogo = QtWidgets.QMenu(self.menubar)
         self.menuJogo.setObjectName("menuJogo")
-        self.menuAjuda = QtWidgets.QMenu(self.menubar)
-        self.menuAjuda.setObjectName("menuAjuda")
         MainWindow.setMenuBar(self.menubar)
         self.actionEntrar_na_Partida = QtWidgets.QAction(MainWindow)
         self.actionEntrar_na_Partida.setObjectName("actionEntrar_na_Partida")
         self.menuJogo.addAction(self.actionEntrar_na_Partida)
         self.actionEntrar_na_Partida.triggered.connect(self.show_join_game_dialog)
-        self.actionAjuda = QtWidgets.QAction(MainWindow)
-        self.actionAjuda.setObjectName("actionAjuda")
-        #TODO: Remove or change this action.
-        '''
-        self.actionTeste = QtWidgets.QAction(MainWindow)
-        self.actionTeste.setObjectName("actionTeste")
-        self.menuJogo.addSeparator()
-        self.menuJogo.addAction(self.actionTeste)'''
-        self.menuAjuda.addAction(self.actionAjuda)
         self.menubar.addAction(self.menuJogo.menuAction())
-        self.menubar.addAction(self.menuAjuda.menuAction())
 
         self.isGameRunnig = False
         self.startTime = None
@@ -260,11 +251,7 @@ class MinesweeperGuiWindow(QWidget):
         self.playerTurnLineEdit.setText(_translate("MainWindow", "Caren"))
         self.turnTimeLabel.setText(_translate("MainWindow", "000"))
         self.menuJogo.setTitle(_translate("MainWindow", "Jogo"))
-        self.menuAjuda.setTitle(_translate("MainWindow", "Ajuda"))
         self.actionEntrar_na_Partida.setText(_translate("MainWindow", "Entrar na Partida"))
-        self.actionAjuda.setText(_translate("MainWindow", "Ajuda"))
-        #TODO: Remove or change.
-        #self.actionTeste.setText(_translate("MainWindow", "Teste"))
 
 
     #--------------------------------------------------------------------------------
@@ -295,23 +282,38 @@ class MinesweeperGuiWindow(QWidget):
             return True
         return False
 
+    # Show the dialog to type your name and join the game.
     def show_join_game_dialog(self):
-        ui = JoinGameDialog()
-        ui.setupUi(self)
-        ui.setModal(True)
-        ui.exec()
+        join_game_dialog = JoinGameDialog()
+        join_game_dialog.setupUi(self)
+        join_game_dialog.setModal(True)
+        join_game_dialog.exec()
 
-    #TODO: Implement this method and create the dialog.
+    # Show the loading dialog.
     def show_loading_game_dialog(self):
-        pass
+        self.loading_game_dialog = LoadingDialog()
+        self.loading_game_dialog.setupUi()
+        self.loading_game_dialog.setModal(True)
+        self.loading_game_dialog.show()
 
-    #TODO: Implement this method and create the dialog.
+    # Close the loading dialog.
     def close_loading_game_dialog(self):
-        pass
+        if self.loading_game_dialog is not None:
+            self.loading_game_dialog.close()
 
-    #TODO: Implement this method and create the dialog.
-    def show_resut_dialog(self):
-        pass
+    # Show your result in a dialog.
+    # @param score: The score of the player.
+    # @param winner: If the player won the game.
+    def show_resut_dialog(self, score, winner=False):
+        self.resut_dialog = ResultDialog()
+        self.resut_dialog.setupUi(score, winner)
+        self.resut_dialog.setModal(True)
+        self.resut_dialog.show()
+
+    # Close the result dialog.
+    def close_result_dialog(self):
+        if self.resut_dialog is not None:
+            self.resut_dialog.close()
 
     # Create a new board and scoreboard.
     def new_game(self, result_board, board_size={"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS}, players=[]):
