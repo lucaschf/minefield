@@ -1,4 +1,8 @@
-from gui_constants import *
+import socket
+from enums.game_status import GameStatus
+from game_client import GameClient
+from helpers.socket_helpers import SERVER_PORT
+from ui.gui_constants import *
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QDialog
 
@@ -77,13 +81,23 @@ class JoinGameDialog(QDialog):
 
     #TODO: Implement this method to try to join the game and show the error message if it fails.
     def join_game(self):
-
+        h_name = socket.gethostname()
+        RPC_SERVER_ADDRESS = socket.gethostbyname(h_name)
+        client = GameClient(RPC_SERVER_ADDRESS, SERVER_PORT)
         #TODO: Change to the name returned by the server.
         self.parent.player_name = self.playerNameLineEdit.text()
-
-        self.parent.start_GameUpdaterWorker()
-        self.parent.show_loading_game_dialog()
-        self.close()      
+        result = client.request_game_status()
+        if(result.body.status == GameStatus.waiting_players):
+            result_queue = client.request_queue_entry(self.parent.player_name)
+            if result_queue.is_ok_response():
+                self.parent.start_GameUpdaterWorker()
+                self.parent.show_loading_game_dialog()
+                self.parent.actionEntrar_na_Partida.setEnabled(False)
+                
+                self.close() 
+            else:
+                self.show_errorLabel(result_queue.error_body);           
+             
 
         #self.show_errorLabel("Já existe um usuário com esse nome na partida!");
 

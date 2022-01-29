@@ -1,7 +1,7 @@
 from queue import Queue
 from random import randint
 
-from dataclass.guess_result import GuessResult
+from guess_result import GuessResult
 from dataclass.minesweeper_DTO import MinesweeperDTO
 from helpers.data import config
 

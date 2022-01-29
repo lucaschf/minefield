@@ -1,11 +1,11 @@
-from gui_constants import *
+from ui.gui_constants import *
 from os import environ
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import QEvent, Qt
 from PyQt5.QtCore import QThread
-from dialogs.join_game_dialog import JoinGameDialog
-from game_updater_worker import GameUpdaterWorker
+from ui.dialogs.join_game_dialog import JoinGameDialog
+from ui.game_updater_worker import GameUpdaterWorker
 from functools import partial
 import time
 
@@ -286,6 +286,10 @@ class MinesweeperGuiWindow(QWidget):
             # Connect the methods here, as the one bellow.
             #self.gameUpdaterWorker.open_cell.connect(self.open_cell)
             self.gameUpdaterWorker.open_cell.connect(self.open_cell)
+            self.gameUpdaterWorker.new_game.connect(self.new_game)
+            self.gameUpdaterWorker.start_game.connect(self.start_game)
+            self.gameUpdaterWorker.next_turn.connect(self.next_turn)
+            self.gameUpdaterWorker.show_turn_info.connect(self.show_turn_info)
 
             self.gameUpdaterThread.start()
             return True
@@ -373,7 +377,7 @@ class MinesweeperGuiWindow(QWidget):
         self.scoreboardListWidget.clear()
         for player in self.players:
             item = QtWidgets.QListWidgetItem()
-            item.setText(player)
+            item.setText(player.name)
             self.scoreboardListWidget.addItem(item)
 
     # Return the index of the player or None if the player is not in the game.
@@ -429,12 +433,12 @@ class MinesweeperGuiWindow(QWidget):
     # Reset the turn timer and select the next player.
     def next_turn(self, player):
         _translate = QtCore.QCoreApplication.translate
-        self.turnInfoWidget.show()
+        # self.turnInfoWidget.show()
         self.turnStartTime = time.time()
         player_index = self.find_player_index(player)
         if player_index != None:
             self.scoreboardListWidget.setCurrentRow(player_index)
-            self.playerTurnLineEdit.setText(_translate("MainWindow", player))
+            self.playerTurnLineEdit.setText(_translate("MainWindow", player.name))
 
     # Get curret game time.
     def get_game_time(self):

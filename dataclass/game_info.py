@@ -3,7 +3,7 @@ from typing import Optional
 
 from dataclass.minesweeper_DTO import MinesweeperDTO
 from dataclass.player import Player
-from game import GameStatus
+from enums.game_status import GameStatus
 
 
 @dataclass(unsafe_hash=True)

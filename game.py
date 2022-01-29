@@ -11,8 +11,8 @@ from exceptions.player_out_of_turn import PlayerOutOfTurn
 from minesweeper import Minesweeper
 
 PLAYER_QUEUE_SIZE = 4
-QUEUE_WAITING_TIME = 3  # seconds
-GUESS_WAITING_TIME = 2  # seconds
+QUEUE_WAITING_TIME = 5  # seconds
+GUESS_WAITING_TIME = 20  # seconds
 MAXIMUM_TOLERANCE_OF_LOST_ROUNDS = 1
 
 
