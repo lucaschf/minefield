@@ -95,7 +95,8 @@ class GameServer(object):
                 else:
                     GameServer.answer(connection, unsupported_response(), request)
                     break
-        except RuntimeError:
+        except RuntimeError as e:
+            print(e)
             GameServer.answer(connection, error_response(), "")
         finally:
             lock.release()
@@ -142,8 +143,6 @@ class GameServer(object):
             return ok_response(result)
         except PlayerOutOfTurn as e:
             return denied_response(str(e.errors))
-        except RuntimeError:
-            return error_response("Unable to handle request")
 
     @staticmethod
     def handle_status_request(game_data: Game) -> Response:
