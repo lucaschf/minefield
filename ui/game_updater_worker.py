@@ -25,6 +25,8 @@ class GameUpdaterWorker(QObject):
     close_loading_game_dialog = pyqtSignal()
     left_click = pyqtSignal(int, int)
     update_turn_widgets = pyqtSignal(Player)
+    end_game = pyqtSignal()
+    show_result_dialog = pyqtSignal()
 
     def run(self, minesweeper_gui):
         h_name = socket.gethostname()
@@ -81,6 +83,8 @@ class GameUpdaterWorker(QObject):
 
                         
                 else:
+                    self.end_game.emit()
+                    self.show_result_dialog.emit()
                     pass
 
             

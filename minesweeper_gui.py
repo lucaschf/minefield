@@ -287,6 +287,8 @@ class MinesweeperGuiWindow(QWidget):
             self.gameUpdaterWorker.show_turn_info.connect(self.show_turn_info)
             self.gameUpdaterWorker.close_loading_game_dialog.connect(self.close_loading_game_dialog)
             self.gameUpdaterWorker.update_turn_widgets.connect(self.update_turn_widgets)
+            self.gameUpdaterWorker.end_game.connect(self.end_game)
+            self.gameUpdaterWorker.show_result_dialog.connect(self.show_resut_dialog)
 
             self.gameUpdaterThread.start()
             return True
@@ -559,9 +561,11 @@ class MinesweeperGuiWindow(QWidget):
         # If the game is running and it is the clicking player's turn, send the clicked coordinates to the server to make a guess
         if(result.body.status == GameStatus.running and result.body.player_of_the_round.name == self.player_name):
             result_guess = self.client.request_take_guess(Guess(result.body.player_of_the_round, row, column))
-            if result_guess.is_ok_response:
+            if result_guess.is_ok_response():
                 if(result_guess.body.bomb == True):
                     self.open_cell(row, column, 9, True)
+                    self.eliminate_player(result.body.player_of_the_round)
+                    # self.end_game()
         else:
             print('voce não clicou na hora certa')
 
