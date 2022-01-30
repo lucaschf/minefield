@@ -9,9 +9,12 @@ from enums.game_status import GameStatus
 @dataclass(unsafe_hash=True)
 class GameInfo(object):
     status: GameStatus
-    players: list
+    players: tuple
     player_of_the_round: Optional[Player]
     minesweeper: Optional[MinesweeperDTO]
+    inactive_players: set
+    winner: Optional[Player]
+
 
 @dataclass(unsafe_hash=True)
 class PlayerQueueInfo:
