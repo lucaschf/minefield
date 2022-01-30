@@ -155,7 +155,9 @@ class GameServer(object):
             game_data.status,
             game_data.players_as_tuple,
             game_data.get_current_player(generate_if_none=False),
-            None if game_data.minesweeper is None else game_data.minesweeper.to_dto()
+            None if game_data.minesweeper is None else game_data.minesweeper.to_dto(),
+            game_data.inactive_players,
+            game_data.winner
         )
 
 
