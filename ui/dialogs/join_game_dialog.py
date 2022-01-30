@@ -1,4 +1,9 @@
-from gui_constants import *
+import socket
+import time
+from enums.game_status import GameStatus
+from game_client import GameClient
+from helpers.socket_helpers import SERVER_PORT
+from ui.gui_constants import *
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QDialog
 
@@ -10,7 +15,7 @@ class JoinGameDialog(QDialog):
         self.setWindowIcon(QtGui.QIcon(WINDOW_ICON))
         self.setWindowFlag(QtCore.Qt.WindowContextHelpButtonHint, False)
         self.setEnabled(True)
-        self.setFixedSize(450, 130)
+        self.setFixedSize(500, 130)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -19,7 +24,7 @@ class JoinGameDialog(QDialog):
         self.setAcceptDrops(False)
 
         self.playerNameLineEdit = QtWidgets.QLineEdit(self)
-        self.playerNameLineEdit.setGeometry(QtCore.QRect(10, 30, 430, 40))
+        self.playerNameLineEdit.setGeometry(QtCore.QRect(10, 30, 480, 40))
         self.playerNameLineEdit.setMinimumSize(QtCore.QSize(0, 40))
         self.playerNameLineEdit.setStyleSheet("padding: 0 5%;")
         font = QtGui.QFont()
@@ -27,14 +32,14 @@ class JoinGameDialog(QDialog):
         self.playerNameLineEdit.setFont(font)
         self.playerNameLineEdit.setObjectName("playerNameLineEdit")
         self.playerNameLabel = QtWidgets.QLabel(self)
-        self.playerNameLabel.setGeometry(QtCore.QRect(10, 10, 400, 20))
+        self.playerNameLabel.setGeometry(QtCore.QRect(10, 10, 450, 20))
         self.playerNameLabel.setMaximumSize(QtCore.QSize(16777215, 20))
         font = QtGui.QFont()
         font.setPointSize(10)
         self.playerNameLabel.setFont(font)
         self.playerNameLabel.setObjectName("playerNameLabel")
         self.actionsWidget = QtWidgets.QWidget(self)
-        self.actionsWidget.setGeometry(QtCore.QRect(0, 80, 450, 50))
+        self.actionsWidget.setGeometry(QtCore.QRect(0, 80, 500, 50))
         self.actionsWidget.setStyleSheet("#actionsWidget{\n"
                                             "    border-top: 1px solid gray;\n"
                                             "}")
@@ -77,13 +82,24 @@ class JoinGameDialog(QDialog):
 
     #TODO: Implement this method to try to join the game and show the error message if it fails.
     def join_game(self):
-
+        h_name = socket.gethostname()
+        RPC_SERVER_ADDRESS = socket.gethostbyname(h_name)
+        client = GameClient(RPC_SERVER_ADDRESS, SERVER_PORT)
         #TODO: Change to the name returned by the server.
         self.parent.player_name = self.playerNameLineEdit.text()
-
-        self.parent.start_GameUpdaterWorker()
-        self.parent.show_loading_game_dialog()
-        self.close()      
+        result = client.request_game_status()
+        if(result.body.status == GameStatus.waiting_players):
+            result_queue = client.request_queue_entry(self.parent.player_name)
+            if result_queue.is_ok_response():
+                self.parent.start_GameUpdaterWorker()
+                
+                self.parent.actionEntrar_na_Partida.setEnabled(False)
+                
+                self.close() 
+                self.parent.show_loading_game_dialog()
+            else:
+                self.show_errorLabel(result_queue.error_body);           
+             
 
         #self.show_errorLabel("Já existe um usuário com esse nome na partida!");
 

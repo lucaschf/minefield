@@ -1,16 +1,27 @@
-from gui_constants import *
+import socket
+from dataclass.guess import Guess
+from enums.game_status import GameStatus
+from game_client import GameClient
+from helpers.socket_helpers import SERVER_PORT
+from ui.gui_constants import *
 from os import environ
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import QEvent, Qt
 from PyQt5.QtCore import QThread
-from join_game_dialog import JoinGameDialog
-from game_updater_worker import GameUpdaterWorker
+from ui.dialogs.join_game_dialog import JoinGameDialog
+from ui.dialogs.loading_dialog import LoadingDialog
+from ui.dialogs.result_dialog import ResultDialog
+from ui.game_updater_worker import GameUpdaterWorker
 from functools import partial
 import time
 
 class MinesweeperGuiWindow(QWidget):
     gameUpdaterThread = None
+    loading_game_dialog = None
+    h_name = socket.gethostname()
+    RPC_SERVER_ADDRESS = socket.gethostbyname(h_name)
+    client = GameClient(RPC_SERVER_ADDRESS, SERVER_PORT)
 
     def setupUi(self, MainWindow, board_size={"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS}, players=[]):
 
@@ -215,24 +226,12 @@ class MinesweeperGuiWindow(QWidget):
         self.menubar.setObjectName("menubar")
         self.menuJogo = QtWidgets.QMenu(self.menubar)
         self.menuJogo.setObjectName("menuJogo")
-        self.menuAjuda = QtWidgets.QMenu(self.menubar)
-        self.menuAjuda.setObjectName("menuAjuda")
         MainWindow.setMenuBar(self.menubar)
         self.actionEntrar_na_Partida = QtWidgets.QAction(MainWindow)
         self.actionEntrar_na_Partida.setObjectName("actionEntrar_na_Partida")
         self.menuJogo.addAction(self.actionEntrar_na_Partida)
         self.actionEntrar_na_Partida.triggered.connect(self.show_join_game_dialog)
-        self.actionAjuda = QtWidgets.QAction(MainWindow)
-        self.actionAjuda.setObjectName("actionAjuda")
-        #TODO: Remove or change this action.
-        '''
-        self.actionTeste = QtWidgets.QAction(MainWindow)
-        self.actionTeste.setObjectName("actionTeste")
-        self.menuJogo.addSeparator()
-        self.menuJogo.addAction(self.actionTeste)'''
-        self.menuAjuda.addAction(self.actionAjuda)
         self.menubar.addAction(self.menuJogo.menuAction())
-        self.menubar.addAction(self.menuAjuda.menuAction())
 
         self.isGameRunnig = False
         self.startTime = None
@@ -260,11 +259,7 @@ class MinesweeperGuiWindow(QWidget):
         self.playerTurnLineEdit.setText(_translate("MainWindow", "Caren"))
         self.turnTimeLabel.setText(_translate("MainWindow", "000"))
         self.menuJogo.setTitle(_translate("MainWindow", "Jogo"))
-        self.menuAjuda.setTitle(_translate("MainWindow", "Ajuda"))
         self.actionEntrar_na_Partida.setText(_translate("MainWindow", "Entrar na Partida"))
-        self.actionAjuda.setText(_translate("MainWindow", "Ajuda"))
-        #TODO: Remove or change.
-        #self.actionTeste.setText(_translate("MainWindow", "Teste"))
 
 
     #--------------------------------------------------------------------------------
@@ -286,28 +281,51 @@ class MinesweeperGuiWindow(QWidget):
             # Connect the methods here, as the one bellow.
             #self.gameUpdaterWorker.open_cell.connect(self.open_cell)
             self.gameUpdaterWorker.open_cell.connect(self.open_cell)
+            self.gameUpdaterWorker.new_game.connect(self.new_game)
+            self.gameUpdaterWorker.start_game.connect(self.start_game)
+            self.gameUpdaterWorker.next_turn.connect(self.next_turn)
+            self.gameUpdaterWorker.show_turn_info.connect(self.show_turn_info)
+            self.gameUpdaterWorker.close_loading_game_dialog.connect(self.close_loading_game_dialog)
+            self.gameUpdaterWorker.update_turn_widgets.connect(self.update_turn_widgets)
+            self.gameUpdaterWorker.end_game.connect(self.end_game)
+            self.gameUpdaterWorker.show_result_dialog.connect(self.show_resut_dialog)
 
             self.gameUpdaterThread.start()
             return True
         return False
 
+    # Show the dialog to type your name and join the game.
     def show_join_game_dialog(self):
-        ui = JoinGameDialog()
-        ui.setupUi(self)
-        ui.setModal(True)
-        ui.exec()
+        join_game_dialog = JoinGameDialog()
+        join_game_dialog.setupUi(self)
+        join_game_dialog.setModal(True)
+        join_game_dialog.exec()
 
-    #TODO: Implement this method and create the dialog.
+    # Show the loading dialog.
     def show_loading_game_dialog(self):
-        pass
+        self.loading_game_dialog = LoadingDialog()
+        self.loading_game_dialog.setupUi()
+        self.loading_game_dialog.setModal(True)
+        self.loading_game_dialog.show()
 
-    #TODO: Implement this method and create the dialog.
+    # Close the loading dialog.
     def close_loading_game_dialog(self):
-        pass
+        if self.loading_game_dialog is not None:
+            self.loading_game_dialog.close()
 
-    #TODO: Implement this method and create the dialog.
-    def show_resut_dialog(self):
-        pass
+    # Show your result in a dialog.
+    # @param score: The score of the player.
+    # @param winner: If the player won the game.
+    def show_resut_dialog(self, score, winner=False):
+        self.resut_dialog = ResultDialog()
+        self.resut_dialog.setupUi(score, winner)
+        self.resut_dialog.setModal(True)
+        self.resut_dialog.show()
+
+    # Close the result dialog.
+    def close_result_dialog(self):
+        if self.resut_dialog is not None:
+            self.resut_dialog.close()
 
     # Create a new board and scoreboard.
     def new_game(self, result_board, board_size={"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS}, players=[]):
@@ -373,7 +391,7 @@ class MinesweeperGuiWindow(QWidget):
         self.scoreboardListWidget.clear()
         for player in self.players:
             item = QtWidgets.QListWidgetItem()
-            item.setText(player)
+            item.setText(player.name)
             self.scoreboardListWidget.addItem(item)
 
     # Return the index of the player or None if the player is not in the game.
@@ -426,15 +444,23 @@ class MinesweeperGuiWindow(QWidget):
     def show_turn_info(self):
         self.turnInfoWidget.show()
 
-    # Reset the turn timer and select the next player.
-    def next_turn(self, player):
+    def update_turn_widgets(self, player):
         _translate = QtCore.QCoreApplication.translate
-        self.turnInfoWidget.show()
-        self.turnStartTime = time.time()
         player_index = self.find_player_index(player)
         if player_index != None:
             self.scoreboardListWidget.setCurrentRow(player_index)
-            self.playerTurnLineEdit.setText(_translate("MainWindow", player))
+            self.playerTurnLineEdit.setText(_translate("MainWindow", player.name))
+
+    # Reset the turn timer and select the next player.
+    def next_turn(self, player):
+        # _translate = QtCore.QCoreApplication.translate
+        # self.turnInfoWidget.show()
+        self.turnStartTime = time.time()
+        self.update_turn_widgets(player)
+        # player_index = self.find_player_index(player)
+        # if player_index != None:
+        #     self.scoreboardListWidget.setCurrentRow(player_index)
+        #     self.playerTurnLineEdit.setText(_translate("MainWindow", player.name))
 
     # Get curret game time.
     def get_game_time(self):
@@ -460,15 +486,21 @@ class MinesweeperGuiWindow(QWidget):
 
     # TODO: Implement this method according to the data received from the server and the board stored in the GUI.
     # Open a cell.
-    def open_cell(self, row, column):
-        print("Abriu -> {} - {}".format(row, column))
-        pass
+    def open_cell(self, row, column, value, exploded=False):
+        # print("Abriu -> {} - {}".format(row, column))
+        cell = self.board[row][column]
+        if not cell.isFlat():
+            if(value != 9):
+                self.open_cell_number(row, column, value)
+            else:
+                self.open_cell_bomb(row, column, exploded)
+        # pass
     
     # Open and draw the number in a cell.
     def open_cell_number(self, row, column, value):
         cell = self.board[row][column]
         cell.setFlat(True)
-        if(value > 0):
+        if(value > 0 and value < 9):
             cell.setText(str(value))
             cell.setStyleSheet("border: 1px inset " + OPENED_CELL_BORDER_COLOR + ";color: " + NUMBERS_COLORS[value - 1] + ";")
         else:
@@ -479,10 +511,13 @@ class MinesweeperGuiWindow(QWidget):
     # exploded: True if the bomb was exploded by this player.
     def open_cell_bomb(self, row, column, exploded=False):
         cell = self.board[row][column]
+        cell.setFlat(True)
         cell.setIcon(QtGui.QIcon(BOMB_ICON))
         cell.setText("")
         if exploded == True:
             cell.setStyleSheet("border: 1px inset " + OPENED_CELL_BORDER_COLOR + ";background-color: " + BOMB_EXPLODED_BACKGROUND_COLOR)
+        else:
+            cell.setStyleSheet("border: 1px inset " + OPENED_CELL_BORDER_COLOR)
 
     # Executed automatically by the QTimer: "self.timer". Update the timers.
     def update_time(self):
@@ -501,12 +536,13 @@ class MinesweeperGuiWindow(QWidget):
                 for row, buttons in enumerate(self.board):
                     for column, button in enumerate(buttons):
                         if button == QObject:
-                            if event.button() == Qt.RightButton:
-                                self.right_click(row, column);
-                            elif event.button() == Qt.LeftButton:
-                                self.left_click(row, column);
-                            elif event.button() == Qt.MiddleButton:
-                                self.middle_click(row, column);
+                            if not button.isFlat():
+                                if event.button() == Qt.RightButton:
+                                    self.right_click(row, column);
+                                elif event.button() == Qt.LeftButton:
+                                    self.left_click(row, column);
+                                elif event.button() == Qt.MiddleButton:
+                                    self.middle_click(row, column);
         return False
 
 
@@ -521,6 +557,17 @@ class MinesweeperGuiWindow(QWidget):
     def left_click(self, row, column):
         # Testing.
         print("Left Click: " + str(row) + " " + str(column))
+        result = self.client.request_game_status()
+        # If the game is running and it is the clicking player's turn, send the clicked coordinates to the server to make a guess
+        if(result.body.status == GameStatus.running and result.body.player_of_the_round.name == self.player_name):
+            result_guess = self.client.request_take_guess(Guess(result.body.player_of_the_round, row, column))
+            if result_guess.is_ok_response():
+                if(result_guess.body.bomb == True):
+                    self.open_cell(row, column, 9, True)
+                    self.eliminate_player(result.body.player_of_the_round)
+                    # self.end_game()
+        else:
+            print('voce não clicou na hora certa')
 
     # Called when the user middle clicks on a cell.
     def middle_click(self, row, column):

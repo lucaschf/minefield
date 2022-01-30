@@ -13,7 +13,8 @@ from minesweeper import Minesweeper
 
 PLAYER_QUEUE_SIZE = 4
 QUEUE_WAITING_TIME = 5  # seconds
-GUESS_WAITING_TIME = 2  # seconds
+
+GUESS_WAITING_TIME = 20  # seconds
 MAXIMUM_TOLERANCE_OF_LOST_ROUNDS = 1
 WAIT_TO_RESTART = 15  # seconds
 
