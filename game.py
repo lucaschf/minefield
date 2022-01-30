@@ -1,6 +1,7 @@
 # import queue
 import threading
 import time
+from builtins import set
 from multiprocessing import Queue
 from typing import Optional
 
@@ -30,6 +31,8 @@ class Game(object):
         self.__aux_players: {Player} = set()
         self.__timeout_check = False
         self.__aux_score = 0
+        self.__inactive_players: {Player} = set()
+        self.__winner: Optional[Player] = None
 
     @property
     def is_player_queue_full(self) -> bool:
@@ -64,6 +67,14 @@ class Game(object):
     def minesweeper(self):
         return self.__minesweeper
 
+    @property
+    def inactive_players(self) -> set:
+        return self.__inactive_players
+
+    @property
+    def winner(self) -> Optional[Player]:
+        return self.__winner
+
     def add_player_to_queue(self, player: Player):
         if self.__players.empty() and not GameStatus.running == self.status:
             thSt = threading.Thread(target=self.__start_game_if_requirements_met)
@@ -83,7 +94,7 @@ class Game(object):
 
         return self.__player_of_the_round
 
-    def __change_player(self, by_timeout: bool = False):
+    def __change_player(self, by_timeout: bool = False, bomb_triggered: bool = False):
         current: Player = self.__player_of_the_round
 
         if not self.__players.empty():
@@ -93,6 +104,8 @@ class Game(object):
                 self.__aux_players.remove(current)  # remove from aux since we add it again if timeout not exceeded
                 updated = current.clone()  # aux variable to change the lost rounds
 
+                updated.score = self.__aux_score
+
                 if by_timeout:
                     updated.lost_rounds += 1
                 elif updated.lost_rounds > 0:
@@ -101,10 +114,11 @@ class Game(object):
                 if current == self.__player_of_the_round:
                     self.__player_of_the_round = updated
 
-                # if have not over-offthe maximum number of rounds without playing, keep in the line of players
-                if updated.lost_rounds < MAXIMUM_TOLERANCE_OF_LOST_ROUNDS:
-                    updated.score = self.__aux_score
+                # if have not over-off the maximum number of rounds without playing, keep in the line of players
+                if updated.lost_rounds < MAXIMUM_TOLERANCE_OF_LOST_ROUNDS and not bomb_triggered:
                     self.add_player_to_queue(updated)
+                else:
+                    self.__inactive_players.add(updated)
         else:
             self.__aux_players.clear()
             self.__player_of_the_round = None
@@ -125,7 +139,10 @@ class Game(object):
 
         self.__aux_score = result.score
 
-        self.__change_player()
+        if result.won:
+            self.__on_board_cleared(result)
+        else:
+            self.__change_player(bomb_triggered=result.bomb)
 
         return result
 
@@ -134,6 +151,14 @@ class Game(object):
             self.__last_player_interaction = None
         else:
             self.__last_player_interaction = time.time()
+
+    def __on_board_cleared(self, result):
+        self.__winner = self.__player_of_the_round if result.won else None
+        self.__players.put_nowait(self.__player_of_the_round)
+
+        while not self.is_player_queue_empty:
+            p = self.__players.get_nowait()
+            self.__inactive_players.add(p)
 
     @staticmethod
     def __timeout(maximum_time: float, last_event_time: time) -> bool:
@@ -177,6 +202,8 @@ class Game(object):
                 self.__aux_players: {Player} = set()
                 self.__timeout_check = False
                 self.__aux_score = 0
+                self.__inactive_players: {Player} = set()
+                self.__winner: Optional[Player] = None
                 break
 
     def __thread_restart(self):

@@ -8,6 +8,7 @@ from dataclass.player import Player
 from dataclass.request import Request
 from dataclass.request import RequestCode
 from dataclass.response import Response
+from game import QUEUE_WAITING_TIME, GUESS_WAITING_TIME
 from helpers.socket_helpers import send_data, receive_data, SERVER_PORT
 
 
@@ -99,17 +100,18 @@ if __name__ == "__main__":
         print("I: ", player_queue)
     else:
         print("E: ", result.error_body)
-    #
-    # print("\nCASE 1 - add player to queue - should return OK")
-    # result = client.request_queue_entry("Joan")
-    # # print("I: ", result)
-    # if result.is_ok_response():
-    #     player_queue = result.body
-    #     print("I: ", player_queue)
-    # else:
-    #     print("E: ", result.error_body)
+
+    print("CASE 1 - add player to queue - should return OK")
+    result = client.request_queue_entry("Iasmina2")
+    # print("I: ", result)
+    if result.is_ok_response():
+        player_queue = result.body
+        print("I: ", player_queue)
+    else:
+        print("E: ", result.error_body)
 
     # OK Response with game ended due innactivity
+    time.sleep(QUEUE_WAITING_TIME)
     print("\nCASE 3 - Get game status Info")
     result = client.request_game_status()
     # print("I: ", result)
@@ -118,8 +120,7 @@ if __name__ == "__main__":
     else:
         print("E: ", result.error_body)
 
-    time.sleep(5)
-
+    time.sleep(GUESS_WAITING_TIME)
     # OK Response with game ended due innactivity
     print("\nCASE 3 - Get game status Info")
     result = client.request_game_status()
