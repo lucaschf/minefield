@@ -12,7 +12,7 @@ from exceptions.player_out_of_turn import PlayerOutOfTurn
 from minesweeper import Minesweeper
 
 PLAYER_QUEUE_SIZE = 4
-QUEUE_WAITING_TIME = 15  # seconds
+QUEUE_WAITING_TIME = 10  # seconds
 
 GUESS_WAITING_TIME = 20  # seconds
 MAXIMUM_TOLERANCE_OF_LOST_ROUNDS = 1
@@ -34,6 +34,7 @@ class Game(object):
         self.__inactive_players: [Player] = list()
         self.__winner: Optional[Player] = None
         self.__changing = False
+        self.__ended_at: time = None
 
     @property
     def is_player_queue_full(self) -> bool:
@@ -125,12 +126,17 @@ class Game(object):
                 self.__aux_players.clear()
                 self.__player_of_the_round = None
                 if bomb_triggered:
-                    self.__status = GameStatus.ended
+                    self.__end_game()
+
             else:
                 self.__player_of_the_round = self.__players.get()
 
             self.__update_guess_time()
         self.__changing = False
+
+    def __end_game(self, by_innactivity: bool = False):
+        self.__ended_at = time.time()
+        self.__status = GameStatus.ended_due_inactivity if by_innactivity else GameStatus.ended
 
     def __is_player_turn(self, player: Player):
         p = self.get_current_player()
@@ -167,6 +173,7 @@ class Game(object):
     def __on_board_cleared(self, result):
         self.__winner = self.__player_of_the_round if result.won else None
         self.__players.put(self.__player_of_the_round)
+        self.__end_game()
 
         while not self.is_player_queue_empty:
             p = self.__players.get()
@@ -203,20 +210,21 @@ class Game(object):
     def __restart_game(self):
         while True:
             if self.__status == GameStatus.ended or self.__status == GameStatus.ended_due_inactivity:
-                time.sleep(WAIT_TO_RESTART)
-                self.__players = queue.Queue(maxsize=PLAYER_QUEUE_SIZE)
-                self.__player_of_the_round: Optional[Player] = None
-                self.__last_player_who_guessed: Optional[Player] = None
-                self.__last_player_joined_in: time = None
-                self.__last_player_interaction: time = None
-                self.__minesweeper: Optional[Minesweeper] = None
-                self.__status: GameStatus = GameStatus.waiting_players
-                self.__aux_players: [Player] = list()
-                self.__timeout_check = False
-                self.__aux_score = 0
-                self.__inactive_players: [Player] = list()
-                self.__winner: Optional[Player] = None
-                break
+                if self.__timeout(WAIT_TO_RESTART, self.__ended_at):
+                    self.__players = queue.Queue(maxsize=PLAYER_QUEUE_SIZE)
+                    self.__player_of_the_round: Optional[Player] = None
+                    self.__last_player_who_guessed: Optional[Player] = None
+                    self.__last_player_joined_in: time = None
+                    self.__last_player_interaction: time = None
+                    self.__minesweeper: Optional[Minesweeper] = None
+                    self.__status: GameStatus = GameStatus.waiting_players
+                    self.__aux_players: [Player] = list()
+                    self.__timeout_check = False
+                    self.__aux_score = 0
+                    self.__inactive_players: [Player] = list()
+                    self.__winner: Optional[Player] = None
+                    self.__ended_at = None
+                    break
 
     def __thread_restart(self):
         th_restart: threading.Thread = threading.Thread(target=self.__restart_game)
@@ -229,5 +237,5 @@ class Game(object):
             if not self.__changing:
                 if len(self.__aux_players) == 0 and self.status == GameStatus.running and \
                         self.__player_of_the_round is None and self.is_player_queue_empty:
-                    self.__status = GameStatus.ended_due_inactivity
+                    self.__end_game(True)
                     break
