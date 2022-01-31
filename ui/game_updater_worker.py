@@ -25,8 +25,10 @@ class GameUpdaterWorker(QObject):
     close_loading_game_dialog = pyqtSignal()
     left_click = pyqtSignal(int, int)
     update_turn_widgets = pyqtSignal(Player)
+    eliminate_player = pyqtSignal(Player)
     end_game = pyqtSignal()
     show_result_dialog = pyqtSignal()
+    set_join_button_enabled = pyqtSignal(bool)
 
     def run(self, minesweeper_gui):
         h_name = socket.gethostname()
@@ -72,6 +74,8 @@ class GameUpdaterWorker(QObject):
                                 for cell in open_coordinates:
                                     if(result.body.minesweeper.board[cell[0]][cell[1]] != 9):
                                         self.open_cell.emit(cell[0], cell[1], result.body.minesweeper.board[cell[0]][cell[1]])
+                            for player in result.body.inactive_players:
+                                self.eliminate_player.emit(player)
                             if result.body.player_of_the_round != current_player:
                                 current_player = result.body.player_of_the_round
                                 self.next_turn.emit(result.body.player_of_the_round)
@@ -81,11 +85,19 @@ class GameUpdaterWorker(QObject):
                                 # print("não é sua vez")
                     
 
-                        
+                # When the game ends, opens all the cells, enables the "join" button and reset the flag.        
                 else:
+                    for player in result.body.players:
+                        self.show_result_dialog(player.score if player != result.body.minesweeper.winner else player.score, True)
+                    board = result.body.minesweeper.board
+                    for row_index, row in enumerate(board):
+                        for column_index, column in enumerate(row):
+                            self.open_cell.emit(row_index, column_index, board[row_index][column_index])
                     self.end_game.emit()
-                    self.show_result_dialog.emit()
-                    pass
+                    self.set_join_button_enabled.emit(True)
+                    flag=0
+                    self.finished.emit()
+                    # self.show_result_dialog.emit()
 
             
                 

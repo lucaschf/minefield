@@ -12,10 +12,10 @@ class GameInfo(object):
     players: tuple
     player_of_the_round: Optional[Player]
     minesweeper: Optional[MinesweeperDTO]
-    inactive_players: set
+    inactive_players: list
     winner: Optional[Player]
 
 
 @dataclass(unsafe_hash=True)
 class PlayerQueueInfo:
-    players: list
+    players: tuple

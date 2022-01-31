@@ -10,5 +10,5 @@ def send_data(data, socket):
 
 
 def receive_data(conn):
-    msg = json.loads(conn.recv(1024 * 4).decode())
+    msg = json.loads(conn.recv(1024 * 10).decode())
     return msg

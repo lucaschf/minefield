@@ -288,8 +288,9 @@ class MinesweeperGuiWindow(QWidget):
             self.gameUpdaterWorker.close_loading_game_dialog.connect(self.close_loading_game_dialog)
             self.gameUpdaterWorker.update_turn_widgets.connect(self.update_turn_widgets)
             self.gameUpdaterWorker.end_game.connect(self.end_game)
+            self.gameUpdaterWorker.eliminate_player.connect(self.eliminate_player)
             self.gameUpdaterWorker.show_result_dialog.connect(self.show_resut_dialog)
-
+            self.gameUpdaterWorker.set_join_button_enabled.connect(self.actionEntrar_na_Partida.setEnabled)
             self.gameUpdaterThread.start()
             return True
         return False
@@ -396,10 +397,10 @@ class MinesweeperGuiWindow(QWidget):
 
     # Return the index of the player or None if the player is not in the game.
     def find_player_index(self, player):
-        try:
-            return self.players.index(player)
-        except ValueError:
-            return None
+        for player_index, i in enumerate(self.players):
+            if i.name == player.name:
+                return player_index
+        return None
 
     # Add a player to the game.
     def add_player(self, player):
@@ -444,6 +445,7 @@ class MinesweeperGuiWindow(QWidget):
     def show_turn_info(self):
         self.turnInfoWidget.show()
 
+    # Updates the turn widgets
     def update_turn_widgets(self, player):
         _translate = QtCore.QCoreApplication.translate
         player_index = self.find_player_index(player)
@@ -558,6 +560,7 @@ class MinesweeperGuiWindow(QWidget):
         # Testing.
         print("Left Click: " + str(row) + " " + str(column))
         result = self.client.request_game_status()
+        # current_player = result.body.player_of_the_round
         # If the game is running and it is the clicking player's turn, send the clicked coordinates to the server to make a guess
         if(result.body.status == GameStatus.running and result.body.player_of_the_round.name == self.player_name):
             result_guess = self.client.request_take_guess(Guess(result.body.player_of_the_round, row, column))
@@ -565,7 +568,10 @@ class MinesweeperGuiWindow(QWidget):
                 if(result_guess.body.bomb == True):
                     self.open_cell(row, column, 9, True)
                     self.eliminate_player(result.body.player_of_the_round)
-                    # self.end_game()
+                    self.show_resut_dialog(result.body.player_of_the_round.score)
+                    self.end_game()
+                if(result_guess.body.won == True):
+                    self.show_resut_dialog(result.body.player_of_the_round.score, True)
         else:
             print('voce não clicou na hora certa')
 
