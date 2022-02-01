@@ -29,6 +29,7 @@ class GameUpdaterWorker(QObject):
     end_game = pyqtSignal()
     show_result_dialog = pyqtSignal()
     set_join_button_enabled = pyqtSignal(bool)
+    update_scoreboard = pyqtSignal(tuple)
 
     def run(self, minesweeper_gui):
         h_name = socket.gethostname()
@@ -68,6 +69,7 @@ class GameUpdaterWorker(QObject):
                         # self.open_cell.emit(random.randint(0, minesweeper_gui.board_size['rows'] - 1), random.randint(0, minesweeper_gui.board_size['columns'] - 1))
                         # updates the UI for all players
                         else:
+                            self.update_scoreboard.emit(result.body.players)
                             self.update_turn_widgets.emit(result.body.player_of_the_round)
                             open_coordinates = result.body.minesweeper.coordinates
                             if len(open_coordinates) > 0:

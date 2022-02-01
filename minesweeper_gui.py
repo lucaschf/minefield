@@ -291,6 +291,7 @@ class MinesweeperGuiWindow(QWidget):
             self.gameUpdaterWorker.eliminate_player.connect(self.eliminate_player)
             self.gameUpdaterWorker.show_result_dialog.connect(self.show_resut_dialog)
             self.gameUpdaterWorker.set_join_button_enabled.connect(self.actionEntrar_na_Partida.setEnabled)
+            self.gameUpdaterWorker.update_scoreboard.connect(self.update_scoreboard)
             self.gameUpdaterThread.start()
             return True
         return False
@@ -476,10 +477,10 @@ class MinesweeperGuiWindow(QWidget):
     def update_scoreboard(self, players):
         _translate = QtCore.QCoreApplication.translate
         for player in players:
-            index = self.find_player_index(player['name'])
+            index = self.find_player_index(player)
             if index != None:
                 item = self.scoreboardListWidget.item(index)
-                item.setText(_translate("MainWindow", player['name'] + " - " + str(player['score'])))
+                item.setText(_translate("MainWindow", player.name + " - " + str(player.score)))
 
     # TODO: Implement this method according to the data received from the server and the board stored in the GUI.
     # Open all cells that haven't been opened yet in the GUI.
