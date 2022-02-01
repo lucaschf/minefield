@@ -1,7 +1,9 @@
 import json
+import socket
 
 
 SERVER_PORT = 12000
+SERVER_ADDRESS = socket.gethostbyname(socket.gethostname())
 
 
 def send_data(data, socket):

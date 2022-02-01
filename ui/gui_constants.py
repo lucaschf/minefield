@@ -8,6 +8,8 @@ ICONS_FOLDER = 'ui/icons/'
 
 WINDOW_ICON = ICONS_FOLDER + 'icon.png'
 SMILE_ICON = ICONS_FOLDER + 'smile.png'
+WIN_ICON = ICONS_FOLDER + 'win.png'
+DEAD_ICON = ICONS_FOLDER + 'dead.png'
 FLAG_ICON = ICONS_FOLDER + 'flag.png'
 BOMB_ICON = ICONS_FOLDER + 'bomb.png'
 

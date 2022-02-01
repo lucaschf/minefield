@@ -1,8 +1,7 @@
-import socket
 from dataclass.guess import Guess
 from enums.game_status import GameStatus
 from game_client import GameClient
-from helpers.socket_helpers import SERVER_PORT
+from helpers.socket_helpers import SERVER_ADDRESS, SERVER_PORT
 from ui.gui_constants import *
 from os import environ
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -13,15 +12,14 @@ from ui.dialogs.join_game_dialog import JoinGameDialog
 from ui.dialogs.loading_dialog import LoadingDialog
 from ui.dialogs.result_dialog import ResultDialog
 from ui.game_updater_worker import GameUpdaterWorker
+from game import GUESS_WAITING_TIME
 from functools import partial
 import time
 
 class MinesweeperGuiWindow(QWidget):
     gameUpdaterThread = None
     loading_game_dialog = None
-    h_name = socket.gethostname()
-    RPC_SERVER_ADDRESS = socket.gethostbyname(h_name)
-    client = GameClient(RPC_SERVER_ADDRESS, SERVER_PORT)
+    client = GameClient(SERVER_ADDRESS, SERVER_PORT)
 
     def setupUi(self, MainWindow, board_size={"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS}, players=[]):
 
@@ -62,19 +60,19 @@ class MinesweeperGuiWindow(QWidget):
         spacerItem = QtWidgets.QSpacerItem(
             40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
-        self.gameActionPushButton = QtWidgets.QPushButton(self.actionsWidget)
-        self.gameActionPushButton.setIcon(QtGui.QIcon(SMILE_ICON))
-        self.gameActionPushButton.setIconSize(QtCore.QSize(20, 20))
+        self.playerStatusPushButton = QtWidgets.QPushButton(self.actionsWidget)
+        self.playerStatusPushButton.setIcon(QtGui.QIcon(SMILE_ICON))
+        self.playerStatusPushButton.setIconSize(QtCore.QSize(20, 20))
         sizePolicy = QtWidgets.QSizePolicy(
             QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(
-            self.gameActionPushButton.sizePolicy().hasHeightForWidth())
-        self.gameActionPushButton.setSizePolicy(sizePolicy)
-        self.gameActionPushButton.setMaximumSize(QtCore.QSize(30, 30))
-        self.gameActionPushButton.setObjectName("gameActionPushButton")
-        self.horizontalLayout.addWidget(self.gameActionPushButton)
+            self.playerStatusPushButton.sizePolicy().hasHeightForWidth())
+        self.playerStatusPushButton.setSizePolicy(sizePolicy)
+        self.playerStatusPushButton.setMaximumSize(QtCore.QSize(30, 30))
+        self.playerStatusPushButton.setObjectName("playerStatusPushButton")
+        self.horizontalLayout.addWidget(self.playerStatusPushButton)
         spacerItem1 = QtWidgets.QSpacerItem(
             40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem1)
@@ -265,12 +263,10 @@ class MinesweeperGuiWindow(QWidget):
     #--------------------------------------------------------------------------------
     # Custom Methods
 
-    #TODO: Connect the methods that will be used in the worker.
     def start_GameUpdaterWorker(self):
         if self.gameUpdaterThread is None or self.gameUpdaterThread.isFinished():
             self.gameUpdaterThread = QThread()
             self.gameUpdaterWorker = GameUpdaterWorker()
-            #self.gameUpdaterWorker.minesweeper_gui = self
             self.gameUpdaterWorker.moveToThread(self.gameUpdaterThread)
 
             self.gameUpdaterThread.started.connect(partial(self.gameUpdaterWorker.run, self))
@@ -278,8 +274,6 @@ class MinesweeperGuiWindow(QWidget):
             self.gameUpdaterWorker.finished.connect(self.gameUpdaterWorker.deleteLater)
             self.gameUpdaterThread.finished.connect(self.gameUpdaterThread.deleteLater)
 
-            # Connect the methods here, as the one bellow.
-            #self.gameUpdaterWorker.open_cell.connect(self.open_cell)
             self.gameUpdaterWorker.open_cell.connect(self.open_cell)
             self.gameUpdaterWorker.new_game.connect(self.new_game)
             self.gameUpdaterWorker.start_game.connect(self.start_game)
@@ -319,6 +313,7 @@ class MinesweeperGuiWindow(QWidget):
     # @param score: The score of the player.
     # @param winner: If the player won the game.
     def show_resut_dialog(self, score, winner=False):
+        self.playerStatusPushButton.setIcon(QtGui.QIcon(WIN_ICON) if winner else QtGui.QIcon(DEAD_ICON))
         self.resut_dialog = ResultDialog()
         self.resut_dialog.setupUi(score, winner)
         self.resut_dialog.setModal(True)
@@ -331,13 +326,13 @@ class MinesweeperGuiWindow(QWidget):
 
     # Create a new board and scoreboard.
     def new_game(self, result_board, board_size={"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS}, players=[]):
+        self.playerStatusPushButton.setIcon(QtGui.QIcon(SMILE_ICON))
         self.result_board = result_board
         self.new_scoreboard(players)
         self.new_board(board_size)
 
     # Create a new board.
     def new_board(self, board_size={"rows": DEFAULT_BOARD_ROWS, "columns": DEFAULT_BOARD_COLS}):
-        # TODO: Delete the print.
         print("New board. Size: {} x {}".format(board_size['rows'], board_size['columns']))
 
         # Delete the old board widgets.
@@ -456,14 +451,8 @@ class MinesweeperGuiWindow(QWidget):
 
     # Reset the turn timer and select the next player.
     def next_turn(self, player):
-        # _translate = QtCore.QCoreApplication.translate
-        # self.turnInfoWidget.show()
         self.turnStartTime = time.time()
         self.update_turn_widgets(player)
-        # player_index = self.find_player_index(player)
-        # if player_index != None:
-        #     self.scoreboardListWidget.setCurrentRow(player_index)
-        #     self.playerTurnLineEdit.setText(_translate("MainWindow", player.name))
 
     # Get curret game time.
     def get_game_time(self):
@@ -482,22 +471,14 @@ class MinesweeperGuiWindow(QWidget):
                 item = self.scoreboardListWidget.item(index)
                 item.setText(_translate("MainWindow", player.name + " (Você)" + " - " + str(player.score) if player.name == self.player_name else player.name + " - " + str(player.score)))
 
-    # TODO: Implement this method according to the data received from the server and the board stored in the GUI.
-    # Open all cells that haven't been opened yet in the GUI.
-    def update_board(self, board):
-        pass
-
-    # TODO: Implement this method according to the data received from the server and the board stored in the GUI.
     # Open a cell.
     def open_cell(self, row, column, value, exploded=False):
-        # print("Abriu -> {} - {}".format(row, column))
         cell = self.board[row][column]
         if not cell.isFlat():
             if(value != 9):
                 self.open_cell_number(row, column, value)
             else:
                 self.open_cell_bomb(row, column, exploded)
-        # pass
     
     # Open and draw the number in a cell.
     def open_cell_number(self, row, column, value):
@@ -527,7 +508,8 @@ class MinesweeperGuiWindow(QWidget):
         if self.isGameRunnig:
             now = time.time()
             self.elapsedTimeLabel.setText(str(int(now - self.startTime)).zfill(3))
-            self.turnTimeLabel.setText(str(int(now - self.turnStartTime)).zfill(3))
+            turn_time = GUESS_WAITING_TIME - int(now - self.turnStartTime)
+            self.turnTimeLabel.setText(str(turn_time if turn_time >= 0 else 0).zfill(3))
 
 
     # Methods to handle the clicks on the cells.
@@ -548,20 +530,14 @@ class MinesweeperGuiWindow(QWidget):
                                     self.middle_click(row, column);
         return False
 
-
-    # TODO: Implement the following methods to send the guesses to the server.
-
     # Called when the user right clicks on a cell.
     def right_click(self, row, column):
-        # Testing.
         print("Right Click: " + str(row) + " " + str(column))
 
     # Called when the user left clicks on a cell.
     def left_click(self, row, column):
-        # Testing.
         print("Left Click: " + str(row) + " " + str(column))
         result = self.client.request_game_status()
-        # current_player = result.body.player_of_the_round
         # If the game is running and it is the clicking player's turn, send the clicked coordinates to the server to make a guess
         if(result.body.status == GameStatus.running and result.body.player_of_the_round.name == self.player_name):
             result_guess = self.client.request_take_guess(Guess(result.body.player_of_the_round, row, column))
@@ -578,7 +554,6 @@ class MinesweeperGuiWindow(QWidget):
 
     # Called when the user middle clicks on a cell.
     def middle_click(self, row, column):
-        # Testing.
         print("Middle Click: " + str(row) + " " + str(column))
 
         
