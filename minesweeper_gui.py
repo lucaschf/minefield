@@ -480,7 +480,7 @@ class MinesweeperGuiWindow(QWidget):
             index = self.find_player_index(player)
             if index != None:
                 item = self.scoreboardListWidget.item(index)
-                item.setText(_translate("MainWindow", player.name + " - " + str(player.score)))
+                item.setText(_translate("MainWindow", player.name + " (Você)" + " - " + str(player.score) if player.name == self.player_name else player.name + " - " + str(player.score)))
 
     # TODO: Implement this method according to the data received from the server and the board stored in the GUI.
     # Open all cells that haven't been opened yet in the GUI.
