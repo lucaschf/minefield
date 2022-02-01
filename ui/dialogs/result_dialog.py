@@ -7,7 +7,7 @@ class ResultDialog(QDialog):
     def setupUi(self, score, winner=False):
         self.score = score
         self.winner = winner
-        self.setWindowFlag(QtCore.Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
 
         self.setObjectName("Dialog")
         self.setFixedSize(400, 150)
