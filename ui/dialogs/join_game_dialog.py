@@ -1,8 +1,6 @@
-import socket
-import time
 from enums.game_status import GameStatus
 from game_client import GameClient
-from helpers.socket_helpers import SERVER_PORT
+from helpers.socket_helpers import SERVER_ADDRESS, SERVER_PORT
 from ui.gui_constants import *
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QDialog
@@ -80,12 +78,8 @@ class JoinGameDialog(QDialog):
         self.cancelPushButton.setText(_translate("Dialog", "Cancelar"))
 
 
-    #TODO: Implement this method to try to join the game and show the error message if it fails.
     def join_game(self):
-        h_name = socket.gethostname()
-        RPC_SERVER_ADDRESS = socket.gethostbyname(h_name)
-        client = GameClient(RPC_SERVER_ADDRESS, SERVER_PORT)
-        #TODO: Change to the name returned by the server.
+        client = GameClient(SERVER_ADDRESS, SERVER_PORT)
         self.parent.player_name = self.playerNameLineEdit.text()
         result = client.request_game_status()
         if(result.body.status == GameStatus.waiting_players):
@@ -100,8 +94,6 @@ class JoinGameDialog(QDialog):
             else:
                 self.show_errorLabel(result_queue.error_body);           
              
-
-        #self.show_errorLabel("Já existe um usuário com esse nome na partida!");
 
     def show_errorLabel(self, error_message=None):
         if error_message is not None:
