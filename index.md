@@ -1,37 +1,34 @@
-## Welcome to GitHub Pages
+## Campo Minado
 
-You can use the [editor on GitHub](https://github.com/lucaschf/minefield/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+O presente projeto foi desenvolvido com o objetivo de colocar em prática os conceitos aprendidos na disciplina de Sistemas Distribuídos. Trata-se de uma adaptação do jogo Campo Minado, onde, conforme o proposto, a turma desenvolveu um jogo simples de rede com suporte para múltiplos jogadores, adaptando o jogo original para que fosse possível a participação de 1 a 4 jogadores, existindo um mecanismo de rodadas onde a ordem de jogada é definida pela ordem de chegada dos jogadores. Além disso, o tamanho do tabuleiro e a quantidade de bombas varia de acordo com o número de jogadores, os mesmos perdem o jogo caso excedam o tempo definido para sua jogada, percam a conexão ou cliquem em uma bomba, em caso de empate, a pontuação dos jogadores será o critério para definir o vencedor.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+### Sobre
 
-### Markdown
+Trabalho prático desenvolvido no curso de Tecnologia em Sistemas para Internet pertencente ao Instituto Federal do Sudeste de Minas Gerais, campus Barbacena na disciplina de Sistemas Distribuídos, ministrada pelo professor [Rafael Alencar](https://github.com/rafjaa).
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+### Instruções
 
+
+É necessário que seu ambiente tenha python 3 instalado.
+
+No terminal, rode os seguintes comandos:
+
+Para instalar os módulos:
 ```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
+pip install -r requirements.txt
+```
+Para iniciar o servidor:
+```markdown
+python game_server.py
+```
+Para cada jogador que desejar conectar, com limite de 4 jogadores por rodada:
+```markdown
+python minesweeper_gui.py
 ```
 
-For more details see [Basic writing and formatting syntax](https://docs.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
+Para iniciar o jogo, um dos jogadores deve selecionar a opção "Entrar na partida" no menu Jogo, a partir disso os jogadores terão um tempo limitado para entrar na partida.
 
-### Jekyll Themes
+### Vídeo 
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/lucaschf/minefield/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+Para ver um vídeo do jogo em funcionamento, clique aqui: (inserir link)
 
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
