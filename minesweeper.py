@@ -202,22 +202,13 @@ class Minesweeper:
 
             self.__fieldZero(x, y, self.matriz, queue, coordinates)
 
-            print('abrir campos adjacentes', coordinates)
             score = len(coordinates)*10
             won = self.__gameFinished()
             return GuessResult(False, coordinates, won, score)
 
         elif self.matriz[x][y] == 9:
-            print('bomba')
-
-            if not ([x, y] in list(self.totalCoordinates)):
-                self.totalCoordinates.append([x, y])
-
-            won = self.__gameFinished()
-            return GuessResult(True, [x, y], won, 0)
+            return GuessResult(True, [x, y], False, 0)
         else:
-            print('campo comum')
-
             if not ([x, y] in list(self.totalCoordinates)):
                 self.totalCoordinates.append([x, y])
 
