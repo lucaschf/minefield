@@ -5,7 +5,7 @@ O presente projeto foi desenvolvido com o objetivo de colocar em prática os con
 Trabalho prático desenvolvido no curso de Tecnologia em Sistemas para Internet pertencente ao Instituto Federal do Sudeste de Minas Gerais, campus Barbacena na disciplina de Sistemas Distribuídos, ministrada pelo professor [Rafael Alencar](https://github.com/rafjaa).
 
 # GitHub Pages
-* a ser criado
+* [Campo Minado](https://lucaschf.github.io/minefield/)
 
 # Instruções
 * É necessário que seu ambiente tenha python 3 instalado.
