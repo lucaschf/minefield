@@ -8,16 +8,30 @@ Trabalho prático desenvolvido no curso de Tecnologia em Sistemas para Internet 
 * a ser criado
 
 # Instruções
-* É necessário que seu ambiente tenha python (versão?) instalado.
+* É necessário que seu ambiente tenha python 3 instalado.
 * Instalar os módulos especificados no requirement.txt.
+```markdown
+pip install -r requirements.txt
+```
 * No terminal, rodar o comando game_server.py para iniciar o servidor.
+```markdown
+python game_server.py
+```
 * Rodar minesweeper_gui.py para cada jogador que desejar conectar, com limite de 4 jogadores por rodada.
+```markdown
+python minesweeper_gui.py
+```
 
 # Apresentação geral
-* inserir link não listado de um vídeo do youtube contendo a apresentação
+* Para ver um vídeo do jogo em funcionamento, [clique aqui](https://youtu.be/_LjcQSGbxI4)
 
 # Apresentações individuais
-* inserir lista de links não listado de um vídeo do youtube contendo as apresentações
+* [Ailton Gabriel de Oliveira](https://youtu.be/sgSqP82ZTWw)
+* [Caren Ferreira Siqueira](https://youtu.be/D8v-YQTZ-T4)
+* [Giovanne Discacciati](https://youtu.be/TR3nALwf8_I)
+* [Lucas Cristovam](https://youtu.be/TmMSmRJr5ec)
+* [Paulo Cirino Junior](https://youtu.be/krqlUvklNpM)
+* [Talita Izabel](https://youtu.be/dc6bVhoNUnw)
 
 # Autores
 * [Ailton Gabriel de Oliveira](https://github.com/AiltonGabriel)
