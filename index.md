@@ -30,5 +30,5 @@ Para iniciar o jogo, um dos jogadores deve selecionar a opção "Entrar na parti
 
 ### Vídeo 
 
-Para ver um vídeo do jogo em funcionamento, clique aqui: (inserir link)
+Para ver um vídeo do jogo em funcionamento, [clique aqui](https://youtu.be/_LjcQSGbxI4).
 
